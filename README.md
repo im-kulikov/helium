@@ -1,6 +1,6 @@
 # Helium
 
-![Logo](./.github/helium.jpg)
+<img src="./.github/helium.jpg" width="350" alt="logo">
 
 - bind - simple replacement for echo.Binder
 - cli - simple cli-wrapper for building apps
