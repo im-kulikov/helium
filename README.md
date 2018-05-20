@@ -1,5 +1,7 @@
 # Helium
 
+![Logo](./github/helium.jpg)
+
 - bind - simple replacement for echo.Binder
 - cli - simple cli-wrapper for building apps
 - examples - of application
