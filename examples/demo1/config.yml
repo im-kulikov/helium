@@ -1,0 +1,5 @@
+database:
+  address: postgres:5433
+  database: my-database
+  user:     my-username
+  password: my-password
