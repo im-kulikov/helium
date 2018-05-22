@@ -12,26 +12,34 @@ var redisConfig = &redis.Config{
 	PoolSize: 2,
 }
 
-func setRedisConfig() {
-	if !viper.IsSet("redis") {
+func fetchRedisConfig(key string, config *redis.Config) {
+	if config == nil {
 		return
 	}
 
-	if viper.IsSet("redis.address") {
-		redisConfig.Addr = viper.GetString("redis.address")
+	if !viper.IsSet(key) {
+		return
 	}
 
-	if viper.IsSet("redis.password") {
-		redisConfig.Password = viper.GetString("redis.password")
+	if viper.IsSet(key + ".address") {
+		redisConfig.Addr = viper.GetString(key + ".address")
 	}
 
-	if viper.IsSet("redis.database") {
-		redisConfig.DB = viper.GetInt("redis.database")
+	if viper.IsSet(key + ".password") {
+		redisConfig.Password = viper.GetString(key + ".password")
 	}
 
-	if viper.IsSet("redis.pool_size") {
-		ormConfig.PoolSize = viper.GetInt("database.pool_size")
+	if viper.IsSet(key + ".database") {
+		redisConfig.DB = viper.GetInt(key + ".database")
 	}
+
+	if viper.IsSet(key + ".pool_size") {
+		redisConfig.PoolSize = viper.GetInt(key + ".pool_size")
+	}
+}
+
+func setRedisConfig() {
+	fetchRedisConfig("redis", redisConfig)
 }
 
 // Redis config

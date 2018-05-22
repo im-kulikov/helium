@@ -2,6 +2,24 @@
 
 
 [[projects]]
+  name = "github.com/bsm/redis-lock"
+  packages = ["."]
+  revision = "1dfc459b28b179b4ff73d82b7b58d8d2b10ec3be"
+  version = "v8.0.0"
+
+[[projects]]
+  name = "github.com/chapsuk/wait"
+  packages = ["."]
+  revision = "a35d477d95204e4e0da1f970c958449ac8e685e4"
+  version = "v0.2.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/chapsuk/worker"
+  packages = ["."]
+  revision = "5ad8eed31d92db4e9b93017346003c260ae20f78"
+
+[[projects]]
   name = "github.com/davecgh/go-spew"
   packages = ["spew"]
   revision = "346938d642f2ec3594ed81d874461961cd0faa76"
@@ -143,6 +161,12 @@
   version = "v1.0.0"
 
 [[projects]]
+  name = "github.com/robfig/cron"
+  packages = ["."]
+  revision = "b41be1df696709bb6395fe435af20370037c0b4c"
+  version = "v1.1"
+
+[[projects]]
   name = "github.com/spf13/afero"
   packages = [
     ".",
@@ -267,6 +291,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "d99ed10c1e388f15e2fda925bbece66a89b344eceffb07cef05bb2778a01c36f"
+  inputs-digest = "1eb9f51852a8c5a63c465e692377d2bdacee116ba143fd91f7e3180ac1afe1e7"
   solver-name = "gps-cdcl"
   solver-version = 1
