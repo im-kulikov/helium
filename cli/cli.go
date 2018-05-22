@@ -74,6 +74,7 @@ func Run(opts *Options) error {
 
 	app := cli.NewApp()
 	app.Flags = opts.Flags
+	app.Version = opts.Version
 	app.Commands = opts.Commands
 
 	app.Before = func(ctx *cli.Context) error {
