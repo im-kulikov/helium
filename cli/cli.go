@@ -77,7 +77,7 @@ func Run(opts *Options) error {
 	app.Commands = opts.Commands
 
 	app.Before = func(ctx *cli.Context) error {
-		if err := settings.Init(opts.Name, opts.Version, opts.Config); err != nil {
+		if err := settings.Init(opts.Name, opts.Version, opts.BuildTime, opts.Config); err != nil {
 			logger.Panic(err)
 		}
 

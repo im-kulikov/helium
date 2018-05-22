@@ -7,12 +7,16 @@ import (
 	"github.com/spf13/viper"
 )
 
+var buildTime, buildVersion string
+
 // Init settings
-func Init(appName, appVersion, filename string) error {
+func Init(appName, appVersion, appBuildTime, filename string) error {
 	viper.SetConfigFile(filename)
 	viper.SetEnvPrefix(appName)
 	viper.AutomaticEnv()
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+
+	buildTime, buildVersion = appBuildTime, appVersion
 
 	err := viper.ReadInConfig()
 	if err != nil {
@@ -24,6 +28,16 @@ func Init(appName, appVersion, filename string) error {
 	setRedisConfig()
 
 	return nil
+}
+
+// Version of application
+func Version() string {
+	return buildVersion
+}
+
+// BuildTime of application
+func BuildTime() string {
+	return buildTime
 }
 
 // G global config

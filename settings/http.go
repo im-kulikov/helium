@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/viper"
 )
 
+// HTTPServer creates an instance of web-server for passed router
 func HTTPServer(key string, router http.Handler) (shutdownTimeout time.Duration, server *http.Server) {
 	if !viper.IsSet(key + ".address") {
 		logger.G().Warnw("missing address for http server", "server", key)
