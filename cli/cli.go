@@ -73,6 +73,7 @@ func Run(opts *Options) error {
 	getDefaults(opts)
 
 	app := cli.NewApp()
+	app.Name = opts.Name
 	app.Flags = opts.Flags
 	app.Version = opts.Version
 	app.Commands = opts.Commands
