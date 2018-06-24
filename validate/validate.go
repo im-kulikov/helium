@@ -1,40 +1,31 @@
 package validate
 
-import "github.com/go-playground/validator"
+import (
+	"gopkg.in/go-playground/validator.v9"
+)
 
-var defaultValidate = &validate{validator.New()}
+type (
+	Func       = validator.Func
+	FieldLevel = validator.FieldLevel
+	Validator  interface {
+		Validate(i interface{}) error
+		Register(tag string, fn Func) error
+	}
+	validate struct {
+		v *validator.Validate
+	}
+)
 
-// validate is wrapper of echo.Validator
-type validate struct {
-	Validator *validator.Validate
-}
-
-// Validator is the interface that wraps the Validate function.
-type Validator interface {
-	Validate(interface{}) error
-}
-
-// G global validator
-func G() *validator.Validate {
-	return defaultValidate.Validator
-}
-
-// Echo validator
-func Echo() Validator {
-	return defaultValidate
-}
-
-// New creates new wrapper of validator for echo.Validator
-func New(v *validator.Validate) Validator {
-	return &validate{v}
-}
-
-// Validate a struct(s) exposed fields, and automatically validates nested struct(s), unless otherwise specified.
 func (v *validate) Validate(i interface{}) error {
-	return v.Validator.Struct(i)
+	return v.v.Struct(i)
 }
 
-// Echo validator
-func (v *validate) Echo() Validator {
-	return v
+func (v *validate) Register(tag string, fn Func) error {
+	return v.v.RegisterValidation(tag, fn)
+}
+
+func New() Validator {
+	return &validate{
+		v: validator.New(),
+	}
 }

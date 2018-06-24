@@ -1,4 +1,4 @@
-package bind
+package web
 
 import (
 	"bytes"
@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/im-kulikov/helium/validate"
 	"github.com/labstack/echo"
 	"github.com/stretchr/testify/assert"
 )
@@ -131,7 +132,7 @@ var values = map[string][]string{
 
 func testNew() (e *echo.Echo) {
 	e = echo.New()
-	e.Binder = New()
+	e.Binder = NewBinder(validate.New())
 	return
 }
 
@@ -208,7 +209,7 @@ func TestBindUnmarshalParam(t *testing.T) {
 		assert.Equal(t, ts, result.T)
 		assert.Equal(t, StringArray([]string{"one", "two", "three"}), result.SA)
 		assert.Equal(t, []Timestamp{ts, ts}, result.TA)
-		assert.Equal(t, Struct{"baz"}, result.ST)
+		assert.Equal(t, Struct{Foo: "baz"}, result.ST)
 	}
 }
 
@@ -229,9 +230,15 @@ func TestBindUnmarshalParamPtr(t *testing.T) {
 func TestBindMultipartForm(t *testing.T) {
 	body := new(bytes.Buffer)
 	mw := multipart.NewWriter(body)
-	mw.WriteField("id", "1")
-	mw.WriteField("name", "Jon Snow")
-	mw.Close()
+	if err := mw.WriteField("id", "1"); err != nil {
+		t.Fatal(err)
+	}
+	if err := mw.WriteField("name", "Jon Snow"); err != nil {
+		t.Fatal(err)
+	}
+	if err := mw.Close(); err != nil {
+		t.Fatal(err)
+	}
 	testBindOkay(t, body, mw.FormDataContentType())
 }
 
@@ -241,8 +248,10 @@ func TestBindUnsupportedMediaType(t *testing.T) {
 
 func TestBindbindData(t *testing.T) {
 	ts := new(bindTestStruct)
-	b := new(DefaultBinder)
-	b.bindData(ts, values, "form")
+	b := &binder{Validator: validate.New()}
+	if err := b.bindData(ts, values, "form"); err != nil {
+		t.Fatal(err)
+	}
 	assertBindTestStruct(t, ts)
 }
 

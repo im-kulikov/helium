@@ -1,4 +1,4 @@
-package bind
+package web
 
 import (
 	"encoding/json"
@@ -9,21 +9,34 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/im-kulikov/helium/validate"
 	"github.com/labstack/echo"
 )
 
-type (
-	// DefaultBinder is the default implementation of the Binder interface.
-	DefaultBinder struct{}
-)
+type binder struct {
+	validate.Validator
+}
 
-// New echo binder
-func New() echo.Binder {
-	return &DefaultBinder{}
+func NewBinder(v validate.Validator) echo.Binder {
+	return &binder{Validator: v}
+}
+
+func (b *binder) validate(i interface{}, c echo.Context) error {
+	if err := b.Validate(i); err != nil {
+		if ok, vErr := validate.CheckErrors(validate.Options{
+			Struct: i,
+			Errors: err,
+		}); ok {
+			return vErr
+		}
+		return err
+	}
+
+	return nil
 }
 
 // Bind implements the `Binder#Bind` function.
-func (b *DefaultBinder) Bind(i interface{}, c echo.Context) (err error) {
+func (b *binder) Bind(i interface{}, c echo.Context) (err error) {
 	req := c.Request()
 	dump, dumpErr := httputil.DumpRequest(req, true)
 
@@ -49,9 +62,9 @@ func (b *DefaultBinder) Bind(i interface{}, c echo.Context) (err error) {
 			if err = b.bindData(i, c.QueryParams(), "query"); err != nil {
 				return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 			}
-			return
+			return b.validate(i, c)
 		} else if req.Method == "POST" {
-			return
+			return b.validate(i, c)
 		}
 		return echo.NewHTTPError(http.StatusBadRequest, "Request body can't be empty")
 	}
@@ -76,7 +89,8 @@ func (b *DefaultBinder) Bind(i interface{}, c echo.Context) (err error) {
 	default:
 		return echo.ErrUnsupportedMediaType
 	}
-	return
+
+	return b.validate(i, c)
 }
 
 func dumpError(err error, logger echo.Logger, dump []byte) {
@@ -85,7 +99,7 @@ func dumpError(err error, logger echo.Logger, dump []byte) {
 	}
 }
 
-func (b *DefaultBinder) bindData(ptr interface{}, data map[string][]string, tag string) error {
+func (b *binder) bindData(ptr interface{}, data map[string][]string, tag string) error {
 	typ := reflect.TypeOf(ptr).Elem()
 	val := reflect.ValueOf(ptr).Elem()
 

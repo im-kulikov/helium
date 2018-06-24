@@ -1,19 +1,19 @@
 package main
 
 import (
+	"time"
+
 	"github.com/davecgh/go-spew/spew"
-	"github.com/im-kulikov/helium/cli"
-	"github.com/im-kulikov/helium/logger"
+	"github.com/im-kulikov/helium"
 	"github.com/im-kulikov/helium/settings"
 )
 
-func defaultCommand() cli.Command {
-	return cli.Command{
+func defaultCommand() helium.Command {
+	return helium.Command{
 		Name:      "default",
 		ShortName: "d",
-		Action: func(ctx *cli.Context) error {
+		Action: func(ctx helium.Context) error {
 
-			spew.Dump(settings.ORM())
 			spew.Dump(settings.G())
 
 			return nil
@@ -21,20 +21,21 @@ func defaultCommand() cli.Command {
 	}
 }
 
-func commands() []cli.Command {
-	return []cli.Command{
+type app struct{}
+
+func (app) Commands() []helium.Command {
+	return []helium.Command{
 		// default command
 		defaultCommand(),
 	}
 }
 
 func main() {
-	if err := cli.Run(&cli.Options{
-		Name:     "demo",
-		Version:  "1.0.0",
-		Config:   "config.yml",
-		Commands: commands(),
-	}); err != nil {
-		logger.Panic(err)
-	}
+	helium.Run(&helium.Config{
+		App:       new(app),
+		File:      "config.yml", // can be omitted
+		Name:      "demo",
+		Version:   "1.0.0",
+		BuildTime: time.Now().Format(time.RFC3339),
+	})
 }

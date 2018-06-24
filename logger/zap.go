@@ -25,11 +25,7 @@ func Panic(err error) {
 }
 
 // Init logger
-func Init(lcfg *Config, customInit func(lcfg *Config) error) error {
-	if customInit != nil {
-		return customInit(lcfg)
-	}
-
+func Init(lcfg *Config) error {
 	cfg := zap.NewProductionConfig()
 	cfg.OutputPaths = []string{"stdout"}
 	cfg.ErrorOutputPaths = []string{"stdout"}

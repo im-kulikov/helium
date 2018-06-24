@@ -42,7 +42,7 @@ func setRedisConfig() {
 	fetchRedisConfig("redis", redisConfig)
 }
 
-// Redis config
-func Redis() *redis.Config {
-	return redisConfig
+// Redis connection
+func Redis() (*redis.Client, error) {
+	return redis.New(redisConfig)
 }

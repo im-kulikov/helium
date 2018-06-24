@@ -35,16 +35,18 @@ func Worker(name string, job worker.Job) (*worker.Worker, error) {
 			var (
 				rdKey  = viper.GetString(key + ".lock.redis")
 				rdConf *redis.Config
+				cli    *redis.Client
+				err    error
 			)
 
 			if rdKey == "redis" {
-				rdConf = Redis()
+				cli, err = Redis()
 			} else {
 				rdConf = new(redis.Config)
 				fetchRedisConfig(rdKey, rdConf)
+				cli, err = redis.New(rdConf)
 			}
 
-			cli, err := redis.New(rdConf)
 			if err != nil {
 				logger.G().Errorw("connect to worker redis lock error", "error", err)
 				if viper.GetBool(key + ".critical") {

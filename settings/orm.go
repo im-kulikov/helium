@@ -43,7 +43,7 @@ func setOrmConfig() {
 	}
 }
 
-// ORM config
-func ORM() *orm.Config {
-	return ormConfig
+// ORM connection
+func ORM() (*orm.DB, error) {
+	return orm.New(ormConfig)
 }

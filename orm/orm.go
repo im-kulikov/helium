@@ -34,7 +34,7 @@ var (
 	ErrNoRows = pg.ErrNoRows
 	// ErrEmptyConfig when given empty options
 	ErrEmptyConfig = errors.New("database empty config")
-	// ErrEmptyLogger when logger not inited
+	// ErrEmptyLogger when logger not initialized
 	ErrEmptyLogger = errors.New("database empty logger")
 )
 
@@ -59,7 +59,7 @@ func New(opts *Config) (db *DB, err error) {
 	})
 
 	if _, err = db.ExecOne("SELECT 1"); err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "can't connect to postgres")
 	}
 
 	if opts.Debug {
