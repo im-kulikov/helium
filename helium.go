@@ -11,8 +11,8 @@ import (
 	"github.com/im-kulikov/helium/validate"
 	"github.com/im-kulikov/helium/web"
 	"github.com/pkg/errors"
-	"github.com/urfave/cli"
 	"go.uber.org/dig"
+	"gopkg.in/urfave/cli.v1"
 )
 
 type (
