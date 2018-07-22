@@ -29,7 +29,7 @@ type (
 		dig.In
 
 		Config *viper.Viper
-		Logger *zap.SugaredLogger
+		Logger *zap.Logger
 		Redis  *redis.Client `optional:"true"`
 		Jobs   map[string]worker.Job
 	}
@@ -57,7 +57,7 @@ func NewWorkers(p Params) (Result, error) {
 		wrk, err := workerByConfig(options{
 			Viper:  p.Config,
 			Redis:  p.Redis,
-			Logger: p.Logger,
+			Logger: p.Logger.Sugar(),
 			CfgKey: name,
 			Job:    job,
 		})
