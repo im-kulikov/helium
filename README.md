@@ -1,5 +1,8 @@
 # Helium
 
+[![codecov](https://codecov.io/gh/im-kulikov/helium/branch/master/graph/badge.svg)](https://codecov.io/gh/im-kulikov/helium)
+[![CircleCI](https://circleci.com/gh/im-kulikov/helium.svg?style=svg)](https://circleci.com/gh/im-kulikov/helium)
+
 <img src="./.github/helium.jpg" width="350" alt="logo">
 
 - bind - simple replacement for echo.Binder
