@@ -1,64 +1,79 @@
 package logger
 
 import (
-	"fmt"
-	"os"
-
+	"github.com/im-kulikov/helium/settings"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
-var logger *zap.SugaredLogger
-
 // Config for logger
 type Config struct {
-	AppName    string
-	AppVersion string
-	Level      string
-	Format     string
+	Level  string
+	Format string
 }
 
-// Panic when logger not inited
-func Panic(err error) {
-	fmt.Printf(`{"app_name": "%s", "app_version": "%s", "msg": "start app error", "error": "%s"}`, "", "", err.Error())
-	os.Exit(1)
+func NewLoggerConfig(v *viper.Viper) *Config {
+	return &Config{
+		Level:  v.GetString("log.level"),
+		Format: v.GetString("log.format"),
+	}
+}
+
+// SafeLevel returns valid logger level
+// use info level by default
+func (c Config) SafeLevel() string {
+	switch c.Level {
+	case "debug", "DEBUG":
+	case "info", "INFO":
+	case "warn", "WARN":
+	case "error", "ERROR":
+	case "panic", "PANIC":
+	case "fatal", "FATAL":
+	default:
+		return "info"
+	}
+	return c.Level
+}
+
+// SafeFormat returns valid logger output format
+// use json by default
+func (c Config) SafeFormat() string {
+	switch c.Format {
+	case "console":
+	case "json":
+	default:
+		return "json"
+	}
+	return c.Format
 }
 
 // Init logger
-func Init(lcfg *Config) error {
+func NewLogger(lcfg *Config, app *settings.App) (*zap.Logger, error) {
 	cfg := zap.NewProductionConfig()
 	cfg.OutputPaths = []string{"stdout"}
 	cfg.ErrorOutputPaths = []string{"stdout"}
 
-	cfg.Encoding = lcfg.Format
+	cfg.Encoding = lcfg.SafeFormat()
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 
 	var lvl zapcore.Level
-	lvl.Set(lcfg.Level)
+	if err := lvl.Set(lcfg.Level); err != nil {
+		return nil, err
+	}
 	cfg.Level = zap.NewAtomicLevelAt(lvl)
 
 	l, err := cfg.Build()
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	if lcfg.Format == "console" {
-		logger = l.Sugar()
-		return nil
+	if lcfg.SafeFormat() == "console" {
+		return l, nil
 	}
 
-	logger = l.Sugar().With(
-		"app_name", lcfg.AppName,
-		"app_version", lcfg.AppVersion,
-	)
-
-	return nil
-}
-
-// G global logger
-func G() *zap.SugaredLogger {
-	if logger == nil {
-		return zap.S()
-	}
-	return logger
+	return l.With(
+		zap.String("app_name", app.Name),
+		zap.String("app_version", app.BuildVersion),
+	), nil
 }

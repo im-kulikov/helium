@@ -1,4 +1,4 @@
-package validate
+package web
 
 import (
 	"fmt"
@@ -73,8 +73,8 @@ func fieldName(v reflect.Value, field string) string {
 }
 
 type (
-	// Options to call CheckErrors method
-	Options struct {
+	// ValidateParams to call CheckErrors method
+	ValidateParams struct {
 		Struct    interface{}
 		Errors    error
 		Formatter func(fields []*FieldError) string
@@ -140,7 +140,7 @@ func messageParse(v reflect.Value, field string) string {
 }
 
 // CheckErrors of validator and return formatted errors:
-func CheckErrors(opts Options) (ok bool, err error) {
+func CheckErrors(opts ValidateParams) (ok bool, err error) {
 	var fieldsErr validator.ValidationErrors
 
 	if opts.Struct == nil || opts.Errors == nil {

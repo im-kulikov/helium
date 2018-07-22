@@ -9,21 +9,20 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/im-kulikov/helium/validate"
 	"github.com/labstack/echo"
 )
 
 type binder struct {
-	validate.Validator
+	Validator
 }
 
-func NewBinder(v validate.Validator) echo.Binder {
+func NewBinder(v Validator) echo.Binder {
 	return &binder{Validator: v}
 }
 
 func (b *binder) validate(i interface{}, c echo.Context) error {
 	if err := b.Validate(i); err != nil {
-		if ok, vErr := validate.CheckErrors(validate.Options{
+		if ok, vErr := CheckErrors(ValidateParams{
 			Struct: i,
 			Errors: err,
 		}); ok {

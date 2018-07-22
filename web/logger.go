@@ -3,7 +3,6 @@ package web
 import (
 	"io"
 
-	"github.com/im-kulikov/helium/logger"
 	"github.com/labstack/echo"
 	"github.com/labstack/gommon/log"
 	"go.uber.org/zap"
@@ -24,9 +23,9 @@ var Null = new(EmptyWriter)
 // Write /dev/null emulation
 func (EmptyWriter) Write(data []byte) (int, error) { return len(data), nil }
 
-func NewLogger() echo.Logger {
+func NewLogger(log *zap.Logger) echo.Logger {
 	l := zap.New(
-		logger.G().Desugar().Core(),
+		log.Core(),
 		zap.AddCallerSkip(1),
 	)
 

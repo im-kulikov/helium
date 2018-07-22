@@ -1,41 +1,51 @@
 package main
 
 import (
-	"time"
+	"context"
 
 	"github.com/davecgh/go-spew/spew"
+	"github.com/go-pg/pg"
 	"github.com/im-kulikov/helium"
+	"github.com/im-kulikov/helium/defaults"
+	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/settings"
+	"github.com/spf13/viper"
+	"go.uber.org/dig"
 )
 
-func defaultCommand() helium.Command {
-	return helium.Command{
-		Name:      "default",
-		ShortName: "d",
-		Action: func(ctx helium.Context) error {
+var mod = module.Module{
+	{Constructor: newApp},
+}.
+	Append(defaults.Module)
 
-			spew.Dump(settings.G())
-
-			return nil
-		},
-	}
+type App struct {
+	v *viper.Viper
 }
 
-type app struct{}
+func newApp(v *viper.Viper, db *pg.DB) helium.App {
+	return &App{v: v}
+}
 
-func (app) Commands() []helium.Command {
-	return []helium.Command{
-		// default command
-		defaultCommand(),
-	}
+func (a App) Run(ctx context.Context) error {
+	spew.Dump(a.v.AllSettings())
+
+	return nil
 }
 
 func main() {
-	helium.Run(&helium.Config{
-		App:       new(app),
-		File:      "config.yml", // can be omitted
-		Name:      "demo",
-		Version:   "1.0.0",
-		BuildTime: time.Now().Format(time.RFC3339),
-	})
+	h, err := helium.New(&settings.App{
+		File:         "config.yml",
+		Type:         "yml",
+		Name:         "demo",
+		BuildTime:    "now",
+		BuildVersion: "dev",
+	}, mod)
+
+	if err != nil {
+		panic(dig.RootCause(err))
+	}
+
+	if err := h.Run(); err != nil {
+		panic(err)
+	}
 }

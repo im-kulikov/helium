@@ -1,4 +1,4 @@
-package validate
+package web
 
 import (
 	"gopkg.in/go-playground/validator.v9"
@@ -24,8 +24,12 @@ func (v *validate) Register(tag string, fn Func) error {
 	return v.v.RegisterValidation(tag, fn)
 }
 
-func New() Validator {
+func NewValidator() Validator {
+	return WrapValidator(validator.New())
+}
+
+func WrapValidator(v *validator.Validate) Validator {
 	return &validate{
-		v: validator.New(),
+		v: v,
 	}
 }

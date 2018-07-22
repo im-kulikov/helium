@@ -1,4 +1,4 @@
-package validate
+package web
 
 import (
 	"net/http"
@@ -59,36 +59,35 @@ var testCases = []testCase{
 
 func TestCheckErrors(t *testing.T) {
 	Convey("Prepare validator", t, func() {
-		v := New()
+		v := NewValidator()
+
 		So(v, ShouldNotBeNil)
 
-		Convey("Check test-cases", func() {
-			So(len(testCases) > 0, ShouldBeTrue)
-			for _, test := range testCases {
-				Convey(test.Name, func() {
-					errValidate := v.Validate(test.Struct)
+		So(len(testCases) > 0, ShouldBeTrue)
+		for _, test := range testCases {
+			Convey(test.Name, func() {
+				errValidate := v.Validate(test.Struct)
 
-					if test.Error == nil {
-						So(errValidate, ShouldBeNil)
-					} else {
-						So(errValidate, ShouldBeError)
-					}
+				if test.Error == nil {
+					So(errValidate, ShouldBeNil)
+				} else {
+					So(errValidate, ShouldBeError)
+				}
 
-					ok, err := CheckErrors(Options{
-						Struct: test.Struct,
-						Errors: errValidate,
-					})
-
-					if test.Error == nil {
-						So(ok, ShouldBeFalse)
-						So(err, ShouldBeNil)
-					} else {
-						So(ok, ShouldBeTrue)
-						So(err, ShouldNotBeNil)
-						So(err.Error(), ShouldEqual, test.Error.Error())
-					}
+				ok, err := CheckErrors(ValidateParams{
+					Struct: test.Struct,
+					Errors: errValidate,
 				})
-			}
-		})
+
+				if test.Error == nil {
+					So(ok, ShouldBeFalse)
+					So(err, ShouldBeNil)
+				} else {
+					So(ok, ShouldBeTrue)
+					So(err, ShouldNotBeNil)
+					So(err.Error(), ShouldEqual, test.Error.Error())
+				}
+			})
+		}
 	})
 }

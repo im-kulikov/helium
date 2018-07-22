@@ -6,9 +6,10 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/im-kulikov/helium/logger"
-	"github.com/im-kulikov/helium/validate"
 	"github.com/labstack/echo"
+	"github.com/spf13/viper"
+	"go.uber.org/dig"
+	"go.uber.org/zap"
 )
 
 type (
@@ -18,61 +19,95 @@ type (
 		Result []string `json:"result"`
 	}
 
+	EngineParams struct {
+		dig.In
+
+		Config     *viper.Viper   `optional:"true"`
+		Binder     echo.Binder    `optional:"true"`
+		Logger     *zap.Logger    `optional:"true"`
+		EchoLogger echo.Logger    `optional:"true"`
+		Validator  echo.Validator `optional:"true"`
+	}
+
 	CustomError interface {
-		FormatResponse(ctx echo.Context)
+		FormatResponse(ctx echo.Context) error
 	}
 )
 
-func captureError(err error, ctx echo.Context) {
-	var (
-		message string
-		code    = http.StatusBadRequest
-		result  = make([]string, 0)
-		trace   = make([]string, 0)
-	)
+func captureError(log *zap.SugaredLogger) echo.HTTPErrorHandler {
+	return func(err error, ctx echo.Context) {
+		var (
+			message string
+			code    = http.StatusBadRequest
+			result  = make([]string, 0)
+			trace   = make([]string, 0)
+		)
 
-	switch custom := err.(type) {
-	case CustomError:
-		custom.FormatResponse(ctx)
-		return
-	case *json.UnmarshalTypeError:
-		message = fmt.Sprintf("JSON parse error: expected=%v, got=%v, offset=%v", custom.Type, custom.Value, custom.Offset)
-	case *json.SyntaxError:
-		message = fmt.Sprintf("JSON parse error: offset=%v, error=%v", custom.Offset, custom.Error())
-	case *xml.UnsupportedTypeError:
-		message = fmt.Sprintf("XML parse error: type=%v, error=%v", custom.Type, custom.Error())
-	case *xml.SyntaxError:
-		message = fmt.Sprintf("XML parse error: line=%v, error=%v", custom.Line, custom.Error())
-	case *echo.HTTPError:
-		code = custom.Code
-		message = custom.Message.(string)
-	default:
-		message = http.StatusText(code)
-	}
+		switch custom := err.(type) {
+		case CustomError:
+			if err = custom.FormatResponse(ctx); err != nil {
+				log.Errorw("Capture error", "error", err)
+			}
+			return
+		case *json.UnmarshalTypeError:
+			message = fmt.Sprintf("JSON parse error: expected=%v, got=%v, offset=%v", custom.Type, custom.Value, custom.Offset)
+		case *json.SyntaxError:
+			message = fmt.Sprintf("JSON parse error: offset=%v, error=%v", custom.Offset, custom.Error())
+		case *xml.UnsupportedTypeError:
+			message = fmt.Sprintf("XML parse error: type=%v, error=%v", custom.Type, custom.Error())
+		case *xml.SyntaxError:
+			message = fmt.Sprintf("XML parse error: line=%v, error=%v", custom.Line, custom.Error())
+		case *echo.HTTPError:
+			code = custom.Code
+			message = custom.Message.(string)
+		default:
+			message = http.StatusText(code)
+		}
 
-	// Capture errors:
-	if code >= http.StatusInternalServerError {
-		logger.G().Errorw("Request error", "error", err)
-	}
+		// Capture errors:
+		if code >= http.StatusInternalServerError {
+			log.Errorw("Request error", "error", err)
+		}
 
-	if errJSON := ctx.JSON(code, errorResponse{
-		Error:  message,
-		Stack:  trace,
-		Result: result,
-	}); errJSON != nil {
-		logger.G().Errorw("Capture error", "error", err)
+		if errJSON := ctx.JSON(code, errorResponse{
+			Error:  message,
+			Stack:  trace,
+			Result: result,
+		}); errJSON != nil {
+			log.Errorw("Capture error",
+				"errorJson", errJSON,
+				"error", err)
+		}
 	}
 }
 
-func NewEngine(l echo.Logger, b echo.Binder, v validate.Validator) *echo.Echo {
+func NewEngine(params EngineParams) *echo.Echo {
 	e := echo.New()
-	e.HideBanner = true
-	e.HidePort = true
+
 	e.Debug = false
-	e.Logger = l
-	e.Validator = v
-	e.Binder = b
-	e.HTTPErrorHandler = captureError
+	e.HidePort = true
+	e.HideBanner = true
+
+	if params.Config != nil && params.Config.GetBool("api.debug") {
+		e.Debug = true
+	}
+
+	if params.Binder != nil {
+		e.Binder = params.Binder
+	}
+
+	if params.EchoLogger != nil {
+		e.Logger = params.EchoLogger
+	}
+
+	if params.Logger != nil {
+		e.Logger = NewLogger(params.Logger)
+		e.HTTPErrorHandler = captureError(params.Logger.Sugar())
+	}
+
+	if params.Validator != nil {
+		e.Validator = params.Validator
+	}
 
 	return e
 }

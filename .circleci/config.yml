@@ -1,0 +1,29 @@
+version: 2
+jobs:
+  build:
+    working_directory: /go/src/github.com/im-kulikov/helium
+    docker:
+    - image: circleci/golang:1.10
+    environment:
+    - DEP_VERSION: 0.4.1
+    steps:
+    - run: git config --global url.ssh://git@github.com/im-kulikov.insteadOf https://github.com/im-kulikov
+    - checkout
+    - restore_cache:
+        key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+        paths:
+        - /go/src/github.com/im-kulikov/helium/vendor
+    - run:
+        name: download-libraries
+        command: |
+          if [ ! -d /go/src/github.com/im-kulikov/helium/vendor ]; then
+              curl -L -s https://github.com/golang/dep/releases/download/v${DEP_VERSION}/dep-linux-amd64 -o /go/bin/dep
+              chmod +x /go/bin/dep
+              /go/bin/dep ensure
+          fi
+    - save_cache:
+        key: gopkg-{{ .Branch }}-{{ checksum "Gopkg.lock" }}
+        paths:
+        - /go/src/github.com/im-kulikov/helium/vendor
+    - run: go test -v -cover -coverprofile=helium.coverprofile ./...
+    - run: bash -c "bash <(curl -s https://codecov.io/bash) -f helium.coverprofile -t $(CODECOV_TOKEN)"

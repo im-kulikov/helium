@@ -5,17 +5,14 @@ import (
 	"time"
 
 	"github.com/go-pg/pg"
-	"github.com/go-pg/pg/orm"
 	"github.com/go-pg/pg/types"
-	"github.com/im-kulikov/helium/logger"
+	"github.com/im-kulikov/helium/module"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
+	"go.uber.org/zap"
 )
 
 type (
-	// DB alias
-	DB = pg.DB
-	// Query alias
-	Query = orm.Query
 	// Config alias
 	Config = struct {
 		Addr     string
@@ -24,10 +21,17 @@ type (
 		Database string
 		Debug    bool
 		PoolSize int
+		Logger   *zap.SugaredLogger
 	}
 )
 
 var (
+	// Module is default connection to PostgreSQL
+	Module = module.Module{
+		{Constructor: NewDefaultConfig},
+		{Constructor: NewConnection},
+	}
+
 	// InSlice alias
 	InSlice = types.InSlice
 	// ErrNoRows alias
@@ -38,17 +42,36 @@ var (
 	ErrEmptyLogger = errors.New("database empty logger")
 )
 
+func NewDefaultConfig(v *viper.Viper, l *zap.Logger) *Config {
+	return &Config{
+		Addr:     v.GetString("postgres.address"),
+		User:     v.GetString("postgres.username"),
+		Password: v.GetString("postgres.password"),
+		Database: v.GetString("postgres.database"),
+		Debug:    v.GetBool("postgres.debug"),
+		PoolSize: v.GetInt("postgres.pool_size"),
+		Logger:   l.Sugar(),
+	}
+}
+
 // New database connection
-func New(opts *Config) (db *DB, err error) {
+func NewConnection(opts *Config) (db *pg.DB, err error) {
 	if opts == nil {
 		err = ErrEmptyConfig
 		return
 	}
 
-	if logger.G() == nil {
+	if opts.Logger == nil {
 		err = ErrEmptyLogger
 		return
 	}
+
+	opts.Logger.Debugw("Connect to PostgreSQL",
+		"address", opts.Addr,
+		"user", opts.User,
+		"password", opts.Password,
+		"database", opts.Database,
+		"pool_size", opts.PoolSize)
 
 	db = pg.Connect(&pg.Options{
 		Addr:     opts.Addr,
@@ -65,7 +88,7 @@ func New(opts *Config) (db *DB, err error) {
 	if opts.Debug {
 		db.OnQueryProcessed(func(event *pg.QueryProcessedEvent) {
 			query, qErr := event.FormattedQuery()
-			logger.G().Debugw(
+			opts.Logger.Debugw(
 				fmt.Sprintf("db query %s: \n\t%s", event.Func, query),
 				"query_time", time.Since(event.StartTime),
 				"error", qErr,

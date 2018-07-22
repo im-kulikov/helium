@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/im-kulikov/helium/validate"
 	"github.com/labstack/echo"
 	"github.com/stretchr/testify/assert"
 )
@@ -132,7 +131,7 @@ var values = map[string][]string{
 
 func testNew() (e *echo.Echo) {
 	e = echo.New()
-	e.Binder = NewBinder(validate.New())
+	e.Binder = NewBinder(NewValidator())
 	return
 }
 
@@ -248,7 +247,7 @@ func TestBindUnsupportedMediaType(t *testing.T) {
 
 func TestBindbindData(t *testing.T) {
 	ts := new(bindTestStruct)
-	b := &binder{Validator: validate.New()}
+	b := &binder{Validator: NewValidator()}
 	if err := b.bindData(ts, values, "form"); err != nil {
 		t.Fatal(err)
 	}

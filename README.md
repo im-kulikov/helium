@@ -3,9 +3,8 @@
 <img src="./.github/helium.jpg" width="350" alt="logo">
 
 - bind - simple replacement for echo.Binder
-- cli - simple cli-wrapper for building apps
 - examples - of application
-- logger - simple package with global / echo logger
+- logger - simple package with zap / echo logger
 - orm - connect to PG database and check connection
 - redis - connect to redis and check connection
 - settings - wrapper around viper
