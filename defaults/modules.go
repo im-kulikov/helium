@@ -10,6 +10,7 @@ import (
 	"github.com/im-kulikov/helium/redis"
 	"github.com/im-kulikov/helium/settings"
 	"github.com/im-kulikov/helium/web"
+	"github.com/im-kulikov/helium/workers"
 )
 
 var Grace = module.Module{
@@ -24,4 +25,5 @@ var Module = module.Module{}.
 	Append(logger.Module).     // logger
 	Append(web.ServersModule). // web-servers
 	Append(orm.Module).        // pg-connection
-	Append(redis.Module)       // redis-connection
+	Append(redis.Module).      // redis-connection
+	Append(workers.Module)     // workers
