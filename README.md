@@ -2,6 +2,7 @@
 
 [![codecov](https://codecov.io/gh/im-kulikov/helium/branch/master/graph/badge.svg)](https://codecov.io/gh/im-kulikov/helium)
 [![CircleCI](https://circleci.com/gh/im-kulikov/helium.svg?style=svg)](https://circleci.com/gh/im-kulikov/helium)
+[![Report](https://goreportcard.com/badge/github.com/im-kulikov/helium)](https://goreportcard.com/report/github.com/im-kulikov/helium)
 
 <img src="./.github/helium.jpg" width="350" alt="logo">
 
