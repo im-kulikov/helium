@@ -48,6 +48,11 @@ func (c Config) SafeFormat() string {
 	return c.Format
 }
 
+// NewSugaredLogger
+func NewSugaredLogger(log *zap.Logger) *zap.SugaredLogger {
+	return log.Sugar()
+}
+
 // Init logger
 func NewLogger(lcfg *Config, app *settings.App) (*zap.Logger, error) {
 	cfg := zap.NewProductionConfig()
