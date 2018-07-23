@@ -1,9 +1,7 @@
 package defaults
 
 import (
-	"context"
-
-	"github.com/chapsuk/grace"
+	"github.com/im-kulikov/helium/grace"
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/orm"
@@ -13,14 +11,8 @@ import (
 	"github.com/im-kulikov/helium/workers"
 )
 
-var Grace = module.Module{
-	{Constructor: func() context.Context {
-		return grace.ShutdownContext(context.Background())
-	}},
-}
-
 var Module = module.Module{}.
-	Append(Grace).             // graceful context
+	Append(grace.Module).      // graceful context
 	Append(settings.Module).   // settings
 	Append(logger.Module).     // logger
 	Append(web.ServersModule). // web-servers

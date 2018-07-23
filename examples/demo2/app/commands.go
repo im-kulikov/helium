@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/im-kulikov/helium/defaults"
+	"github.com/im-kulikov/helium/grace"
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/settings"
@@ -9,7 +9,7 @@ import (
 
 var (
 	mod = module.Module{}.
-		Append(defaults.Grace).
+		Append(grace.Module).
 		Append(settings.Module).
 		Append(logger.Module)
 

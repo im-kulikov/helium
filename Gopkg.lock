@@ -20,12 +20,6 @@
   version = "v8.0.0"
 
 [[projects]]
-  name = "github.com/chapsuk/grace"
-  packages = ["."]
-  revision = "91b5357738018ef81b7ca6af4208c0a0ccaa9ea2"
-  version = "v0.3"
-
-[[projects]]
   name = "github.com/chapsuk/mserv"
   packages = ["."]
   revision = "107033951ceb1bc2309082e6d595a93860714ddd"
@@ -464,6 +458,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "fca53f493d5f177ed3f4f0b282aee10c503341a2caba29f5c4f322c73d58c0cf"
+  inputs-digest = "cf3e937fd466febebc368cd36c2d89445365b688422a72161f88697faf4b8ee3"
   solver-name = "gps-cdcl"
   solver-version = 1
