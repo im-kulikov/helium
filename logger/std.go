@@ -32,12 +32,9 @@ func (s stdLogger) Fatalf(format string, v ...interface{}) {
 }
 
 func NewStdLogger(z *zap.Logger) StdLogger {
-	l := zap.New(
-		z.Core(),
-		zap.AddCallerSkip(1),
-	)
-
 	return stdLogger{
-		SugaredLogger: l.Sugar(),
+		SugaredLogger: z.
+			WithOptions(zap.AddCallerSkip(1)).
+			Sugar(),
 	}
 }

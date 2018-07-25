@@ -73,10 +73,6 @@ func NewLogger(lcfg *Config, app *settings.App) (*zap.Logger, error) {
 		return nil, err
 	}
 
-	if lcfg.SafeFormat() == "console" {
-		return l, nil
-	}
-
 	return l.With(
 		zap.String("app_name", app.Name),
 		zap.String("app_version", app.BuildVersion),

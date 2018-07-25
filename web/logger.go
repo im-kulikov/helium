@@ -24,13 +24,10 @@ var Null = new(EmptyWriter)
 func (EmptyWriter) Write(data []byte) (int, error) { return len(data), nil }
 
 func NewLogger(log *zap.Logger) echo.Logger {
-	l := zap.New(
-		log.Core(),
-		zap.AddCallerSkip(1),
-	)
-
 	return &echoLogger{
-		l: l.Sugar(),
+		l: log.
+			WithOptions(zap.AddCallerSkip(1)).
+			Sugar(),
 	}
 }
 
