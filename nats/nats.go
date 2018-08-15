@@ -32,8 +32,8 @@ func NewDefaultConfig(v *viper.Viper) (*Config, error) {
 	}
 	return &Config{
 		Url:              v.GetString("nats.url"),
+		Servers:          v.GetStringSlice("nats.servers"),
 		NoRandomize:      v.GetBool("nats.no_randomize"),
-		NoEcho:           v.GetBool("nats.no_echo"),
 		Name:             v.GetString("nats.name"),
 		Verbose:          v.GetBool("nats.verbose"),
 		Pedantic:         v.GetBool("nats.pedantic"),
