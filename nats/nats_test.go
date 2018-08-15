@@ -1,8 +1,11 @@
 package nats
 
 import (
+	"fmt"
+	"runtime"
 	"testing"
 
+	gnatsd "github.com/nats-io/gnatsd/test"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/spf13/viper"
 )
@@ -30,6 +33,41 @@ func TestNewDefaultConfig(t *testing.T) {
 			c, err := NewConnection(nil)
 			So(c, ShouldBeNil)
 			So(err, ShouldBeError, ErrEmptyConfig)
+		})
+
+		Convey("should fail client", func() {
+			port := 8368
+			url := fmt.Sprintf("nats://localhost:%d", port)
+			v.SetDefault("nats.url", url)
+
+			c, err := NewDefaultConfig(v)
+			So(err, ShouldBeNil)
+			So(c.Url, ShouldEqual, url)
+
+			cli, err := NewConnection(c)
+			So(cli, ShouldBeNil)
+			So(err, ShouldBeError)
+		})
+
+		Convey("should not fail with test server", func() {
+			port := 8368
+			url := fmt.Sprintf("nats://localhost:%d", port)
+			v.SetDefault("nats.url", url)
+
+			opts := gnatsd.DefaultTestOptions
+			opts.Port = port
+			serve := gnatsd.RunServer(&opts)
+			defer serve.Shutdown()
+			go serve.Start()
+			runtime.Gosched()
+
+			c, err := NewDefaultConfig(v)
+			So(err, ShouldBeNil)
+			So(c.Url, ShouldEqual, url)
+
+			cli, err := NewConnection(c)
+			So(err, ShouldBeNil)
+			So(cli, ShouldNotBeNil)
 		})
 	})
 }
