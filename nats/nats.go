@@ -25,6 +25,7 @@ var (
 	ErrEmptyConfig = errors.New("nats empty config")
 )
 
+// NewDefaultConfig default settings for connection
 func NewDefaultConfig(v *viper.Viper) (*Config, error) {
 	if !v.IsSet("nats") {
 		return nil, ErrEmptyConfig

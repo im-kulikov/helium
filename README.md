@@ -11,6 +11,7 @@
 - logger - simple package with zap / echo logger
 - orm - connect to PG database and check connection
 - redis - connect to redis and check connection
+- nats - connect to nats and check connection
 - settings - wrapper around viper
 - validate - simple replacement for echo.Validate
 
