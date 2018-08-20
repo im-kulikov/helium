@@ -30,9 +30,15 @@ func NewDefaultConfig(v *viper.Viper) (*Config, error) {
 	if !v.IsSet("nats") {
 		return nil, ErrEmptyConfig
 	}
+
+	var servers []string
+	if v.IsSet("nats.servers") {
+		servers = v.GetStringSlice("nats.servers")
+	}
+
 	return &Config{
 		Url:              v.GetString("nats.url"),
-		Servers:          v.GetStringSlice("nats.servers"),
+		Servers:          servers,
 		NoRandomize:      v.GetBool("nats.no_randomize"),
 		Name:             v.GetString("nats.name"),
 		Verbose:          v.GetBool("nats.verbose"),

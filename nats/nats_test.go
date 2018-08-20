@@ -20,6 +20,23 @@ func TestNewDefaultConfig(t *testing.T) {
 			So(err, ShouldBeError)
 		})
 
+		Convey("servers should be nil", func() {
+			v.SetDefault("nats.url", "something")
+
+			c, err := NewDefaultConfig(v)
+			So(err, ShouldBeNil)
+			So(c.Servers, ShouldBeNil)
+		})
+
+		Convey("servers should be slice of string", func() {
+			v.SetDefault("nats.servers", "something")
+
+			c, err := NewDefaultConfig(v)
+			So(err, ShouldBeNil)
+			So(c.Servers, ShouldHaveLength, 1)
+			So(c.Servers[0], ShouldEqual, "something")
+		})
+
 		Convey("should be ok", func() {
 			url := "something"
 			v.SetDefault("nats.url", url)

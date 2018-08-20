@@ -97,6 +97,22 @@ func (testBuffer) Sync() error {
 	return nil
 }
 
+type respWriter struct{}
+
+func newTestWriter() http.ResponseWriter {
+	return &respWriter{}
+}
+
+func (*respWriter) Header() http.Header {
+	return make(http.Header)
+}
+
+func (*respWriter) Write([]byte) (int, error) {
+	return 0, errors.New("respWriter error")
+}
+
+func (*respWriter) WriteHeader(statusCode int) {}
+
 func newTestLogger(rw zapcore.WriteSyncer) *zap.Logger {
 	encoderCfg := zapcore.EncoderConfig{
 		MessageKey:     "msg",
@@ -288,6 +304,23 @@ func TestEngine(t *testing.T) {
 				captureError(z.Sugar())(err, ctx)
 				So(rec.Body.Len(), ShouldBeGreaterThan, 0)
 				So(rec.Body.String(), ShouldContainSubstring, http.StatusText(http.StatusBadRequest))
+			})
+
+			Convey("try to capture ctx.JSON Error", func() {
+				So(err, ShouldBeNil)
+				err = unknownError()
+				So(err, ShouldBeError)
+
+				ctx.Reset(
+					ctx.Request(),
+					echo.NewResponse(newTestWriter(), e),
+				)
+
+				captureError(z.Sugar())(err, ctx)
+
+				So(rec.Body.Len(), ShouldBeZeroValue)
+				So(buf.Len(), ShouldBeGreaterThan, 0)
+				So(buf.String(), ShouldContainSubstring, "respWriter error")
 			})
 		})
 	})

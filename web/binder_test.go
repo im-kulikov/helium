@@ -3,31 +3,46 @@ package web
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"io"
 	"mime/multipart"
-	"net/http"
 	"net/http/httptest"
 	"reflect"
 	"strings"
 	"testing"
 	"time"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/labstack/echo"
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	userJSON       = `{"id":1,"name":"Jon Snow"}`
-	userXML        = `<user><id>1</id><name>Jon Snow</name></user>`
-	userForm       = `id=1&name=Jon Snow`
-	userParam      = `/1/Jon%20Snow`
-	invalidContent = "invalid content"
+	userJSON           = `{"id":1,"name":"Jon Snow", "slice": {"Items": [1, 2, 3, 4, 5]}}`
+	userXML            = `<user><id>1</id><name>Jon Snow</name></user>`
+	userForm           = `id=1&name=Jon Snow`
+	userParam          = `/1/Jon%20Snow`
+	invalidContent     = "invalid content"
+	invalidFormContent = `id=Nil&name=Jon Snow`
+	invalidJSONContent = `{"id":1,"name":"Jon Snow", "slice": {"Items": [1, 2, 3, 4, 5, "a"]}, "user": {"id": 1,"name":"Jon Snow"}}`
 )
 
 type (
 	user struct {
-		ID   int    `json:"id" xml:"id" form:"id" query:"id" param:"id"`
-		Name string `json:"name" xml:"name" form:"name" query:"name" param:"name"`
+		ID     int    `json:"id" xml:"id" form:"id" query:"id" param:"id"`
+		Name   string `json:"name" xml:"name" form:"name" query:"name" param:"name"`
+		Sliced `json:"slice" xml:"slice" form:"slice" query:"slice" param:"slice"`
+	}
+
+	Sliced struct {
+		Items []int
+	}
+
+	userValidate struct {
+		ID     int    `json:"id" xml:"id" form:"id" query:"id" param:"id" validate:"required"`
+		Name   string `json:"name" xml:"name" form:"name" query:"name" param:"name" validate:"required"`
+		User   *user  `json:"user" xml:"user" form:"user" query:"user" param:"user"`
+		Sliced `json:"slice" xml:"slice" form:"slice" query:"slice" param:"slice"`
 	}
 
 	bindTestStruct struct {
@@ -135,6 +150,74 @@ func testNew() (e *echo.Echo) {
 	return
 }
 
+type fakeValidator struct{}
+
+func (fakeValidator) Validate(i interface{}) error {
+	return errors.New("fake error")
+}
+
+func (fakeValidator) Register(tag string, fn Func) error {
+	panic("implement me")
+}
+
+func newFakeValidator() Validator {
+	return fakeValidator{}
+}
+
+func TestValidate(t *testing.T) {
+	e := testNew()
+	req := httptest.NewRequest(echo.POST, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	u := new(userValidate)
+	err := c.Bind(u)
+	assert.Error(t, err)
+
+	e.Binder.(*binder).Validator = nil
+	err = c.Bind(u)
+	assert.NoError(t, err)
+
+	e.Binder.(*binder).Validator = newFakeValidator()
+	err = c.Bind(u)
+	assert.EqualError(t, err, "fake error")
+}
+
+func TestBindOptions(t *testing.T) {
+	e := testNew()
+	req := httptest.NewRequest(echo.OPTIONS, "/?id=1&name=Jon+Snow", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	u := new(user)
+	err := c.Bind(u)
+	assert.Error(t, err)
+}
+
+func TestBindRecursive(t *testing.T) {
+	e := testNew()
+
+	t.Run("ok", func(t *testing.T) {
+		req := httptest.NewRequest(echo.POST, "/", strings.NewReader(userJSON))
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		u := new(userValidate)
+		err := c.Bind(u)
+		assert.NoError(t, err)
+	})
+
+	t.Run("fail", func(t *testing.T) {
+		req := httptest.NewRequest(echo.POST, "/", strings.NewReader(invalidJSONContent))
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		u := new(userValidate)
+		err := c.Bind(u)
+		spew.Dump(err)
+		assert.Error(t, err)
+	})
+}
+
 func TestBindJSON(t *testing.T) {
 	testBindOkay(t, strings.NewReader(userJSON), echo.MIMEApplicationJSON)
 	testBindError(t, strings.NewReader(invalidContent), echo.MIMEApplicationJSON)
@@ -149,6 +232,9 @@ func TestBindXML(t *testing.T) {
 
 func TestBindForm(t *testing.T) {
 	testBindOkay(t, strings.NewReader(userForm), echo.MIMEApplicationForm)
+	testBindError(t, strings.NewReader(invalidFormContent), echo.MIMEApplicationForm)
+	testBindError(t, strings.NewReader(invalidContent), echo.MIMEOctetStream)
+	testBindError(t, strings.NewReader(userJSON), echo.MIMEMultipartForm)
 	testBindOkay(t, nil, echo.MIMEApplicationForm)
 	e := testNew()
 	req := httptest.NewRequest(echo.POST, "/", strings.NewReader(userForm))
@@ -170,6 +256,13 @@ func TestBindQueryParams(t *testing.T) {
 		assert.Equal(t, 1, u.ID)
 		assert.Equal(t, "Jon Snow", u.Name)
 	}
+
+	req = httptest.NewRequest(echo.GET, "/?id=nil&name=Jon+Snow", nil)
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+	u = new(user)
+	err = c.Bind(u)
+	assert.Error(t, err)
 }
 
 func TestBindParams(t *testing.T) {
@@ -372,9 +465,7 @@ func testBindError(t *testing.T, r io.Reader, ctype string) {
 		assert.Error(t, err)
 		assert.EqualError(t, err, "EOF")
 	case strings.HasPrefix(ctype, echo.MIMEApplicationForm), strings.HasPrefix(ctype, echo.MIMEMultipartForm):
-		if assert.IsType(t, new(echo.HTTPError), err) {
-			assert.Equal(t, http.StatusBadRequest, err.(*echo.HTTPError).Code)
-		}
+		assert.Error(t, err)
 	default:
 		if assert.IsType(t, new(echo.HTTPError), err) {
 			assert.Equal(t, echo.ErrUnsupportedMediaType, err)

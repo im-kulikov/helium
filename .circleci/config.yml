@@ -3,7 +3,14 @@ jobs:
   build:
     working_directory: /go/src/github.com/im-kulikov/helium
     docker:
+    # CircleCI Go images available at: https://hub.docker.com/r/circleci/golang/
     - image: circleci/golang:1.10
+    # CircleCI PostgreSQL images available at: https://hub.docker.com/r/circleci/postgres/
+    - image: circleci/postgres:alpine-ram
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        POSTGRES_DB: postgres
     environment:
     - DEP_VERSION: 0.4.1
     steps:

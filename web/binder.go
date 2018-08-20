@@ -21,6 +21,10 @@ func NewBinder(v Validator) echo.Binder {
 }
 
 func (b *binder) validate(i interface{}, c echo.Context) error {
+	if b.Validator == nil {
+		return nil
+	}
+
 	if err := b.Validate(i); err != nil {
 		if ok, vErr := CheckErrors(ValidateParams{
 			Struct: i,
@@ -40,10 +44,9 @@ func (b *binder) Bind(i interface{}, c echo.Context) (err error) {
 	dump, dumpErr := httputil.DumpRequest(req, true)
 
 	defer func() {
-		if dumpErr != nil {
-			c.Logger().Error(dumpErr)
+		if dumpErr == nil {
+			dumpError(err, c.Logger(), dump)
 		}
-		dumpError(err, c.Logger(), dump)
 	}()
 
 	var params = make(map[string][]string, len(c.ParamNames()))

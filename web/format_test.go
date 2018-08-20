@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"reflect"
 	"testing"
 
 	"github.com/labstack/echo"
@@ -62,6 +63,44 @@ func TestCheckErrors(t *testing.T) {
 		v := NewValidator()
 
 		So(v, ShouldNotBeNil)
+
+		So(func() {
+			AddTagParsers(func(reflect.StructTag) string {
+				return "-"
+			})
+		}, ShouldNotPanic)
+
+		Convey("check custom formatter", func() {
+			test := testCases[0]
+			errValidate := v.Validate(test.Struct)
+
+			if test.Error == nil {
+				So(errValidate, ShouldBeNil)
+			} else {
+				So(errValidate, ShouldBeError)
+			}
+
+			ok, err := CheckErrors(ValidateParams{
+				Struct: test.Struct,
+				Errors: errValidate,
+				Formatter: func(fields []*FieldError) string {
+					for _, item := range fields {
+						So(item, ShouldNotBeNil)
+						So(item, ShouldBeError)
+					}
+					return defaultFormatter(fields)
+				},
+			})
+
+			if test.Error == nil {
+				So(ok, ShouldBeFalse)
+				So(err, ShouldBeNil)
+			} else {
+				So(ok, ShouldBeTrue)
+				So(err, ShouldNotBeNil)
+				So(err.Error(), ShouldEqual, test.Error.Error())
+			}
+		})
 
 		So(len(testCases) > 0, ShouldBeTrue)
 		for _, test := range testCases {

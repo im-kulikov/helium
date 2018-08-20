@@ -42,7 +42,11 @@ var (
 	ErrEmptyLogger = errors.New("database empty logger")
 )
 
-func NewDefaultConfig(v *viper.Viper, l *zap.Logger) *Config {
+func NewDefaultConfig(v *viper.Viper) (*Config, error) {
+	if !v.IsSet("postgres") {
+		return nil, ErrEmptyConfig
+	}
+
 	return &Config{
 		Addr:     v.GetString("postgres.address"),
 		User:     v.GetString("postgres.username"),
@@ -50,23 +54,22 @@ func NewDefaultConfig(v *viper.Viper, l *zap.Logger) *Config {
 		Database: v.GetString("postgres.database"),
 		Debug:    v.GetBool("postgres.debug"),
 		PoolSize: v.GetInt("postgres.pool_size"),
-		Logger:   l.Sugar(),
-	}
+	}, nil
 }
 
 // New database connection
-func NewConnection(opts *Config) (db *pg.DB, err error) {
+func NewConnection(opts *Config, l *zap.SugaredLogger) (db *pg.DB, err error) {
 	if opts == nil {
 		err = ErrEmptyConfig
 		return
 	}
 
-	if opts.Logger == nil {
+	if l == nil {
 		err = ErrEmptyLogger
 		return
 	}
 
-	opts.Logger.Debugw("Connect to PostgreSQL",
+	l.Debugw("Connect to PostgreSQL",
 		"address", opts.Addr,
 		"user", opts.User,
 		"password", opts.Password,
@@ -88,7 +91,7 @@ func NewConnection(opts *Config) (db *pg.DB, err error) {
 	if opts.Debug {
 		db.OnQueryProcessed(func(event *pg.QueryProcessedEvent) {
 			query, qErr := event.FormattedQuery()
-			opts.Logger.Debugw(
+			l.Debugw(
 				fmt.Sprintf("db query %s: \n\t%s", event.Func, query),
 				"query_time", time.Since(event.StartTime),
 				"error", qErr,
