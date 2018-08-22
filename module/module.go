@@ -13,10 +13,6 @@ type (
 
 // New single module
 func New(fn interface{}, opts ...dig.ProvideOption) Module {
-	if fn == nil {
-		return Module{}
-	}
-
 	return Module{
 		{
 			Constructor: fn,
