@@ -70,6 +70,10 @@ func newHTTPServer(v *viper.Viper, key string, h http.Handler, l logger.StdLogge
 		l.Printf("Empty bind address for %s server, skip", key)
 		return ServerResult{}
 	}
+	if h == nil {
+		l.Printf("Empty handler for %s server, skip", key)
+		return ServerResult{}
+	}
 	l.Printf("Create %s http server, bind address: %s", key, v.GetString(key+".address"))
 	return ServerResult{
 		Server: mserv.NewHTTPServer(

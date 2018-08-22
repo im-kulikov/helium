@@ -25,7 +25,11 @@ var (
 	ErrEmptyConfig = errors.New("redis empty config")
 )
 
-func NewDefaultConfig(v *viper.Viper) *Config {
+func NewDefaultConfig(v *viper.Viper) (*Config, error) {
+	if !v.IsSet("redis.address") {
+		return nil, errors.New("missing redis config key")
+	}
+
 	return &Config{
 		Addr:               v.GetString("redis.address"),
 		Password:           v.GetString("redis.password"),
@@ -40,15 +44,11 @@ func NewDefaultConfig(v *viper.Viper) *Config {
 		PoolTimeout:        v.GetDuration("redis.pool_timeout"),
 		IdleTimeout:        v.GetDuration("redis.idle_timeout"),
 		IdleCheckFrequency: v.GetDuration("redis.idle_check_frequency"),
-	}
+	}, nil
 }
 
 // New redis client
 func NewConnection(opts *Config) (cache *Client, err error) {
-	if opts == nil {
-		return nil, ErrEmptyConfig
-	}
-
 	cache = redis.NewClient(opts)
 
 	if _, err = cache.Ping().Result(); err != nil {

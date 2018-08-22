@@ -12,37 +12,43 @@ import (
 	"testing"
 	"time"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/labstack/echo"
 	"github.com/stretchr/testify/assert"
 )
 
 const (
-	userJSON           = `{"id":1,"name":"Jon Snow", "slice": {"Items": [1, 2, 3, 4, 5]}}`
+	userJSON           = `{"id":1,"name":"Jon Snow", "Sliced": {"Items": [1, 2, 3, 4, 5]}}`
 	userXML            = `<user><id>1</id><name>Jon Snow</name></user>`
-	userForm           = `id=1&name=Jon Snow`
+	userForm           = `id=1&name=Jon Snow&array[]=a&array[]=b&array[]=c`
 	userParam          = `/1/Jon%20Snow`
 	invalidContent     = "invalid content"
-	invalidFormContent = `id=Nil&name=Jon Snow`
-	invalidJSONContent = `{"id":1,"name":"Jon Snow", "slice": {"Items": [1, 2, 3, 4, 5, "a"]}, "user": {"id": 1,"name":"Jon Snow"}}`
+	invalidFormContent = `ID=a&name=Jon+Snow&Sliced[Items][]=1&Sliced[Items][]=2&Sliced[Items][]=3&Sliced[Items][]=4&Sliced[Items][]=5&Sliced[Items][]=a&Recursive[array][]=a&Recursive[array][]=b&Recursive[Sliced][Items][]=1&Recursive[Sliced][Items][]=2&Recursive[Sliced][Items][]=3&Recursive[Sliced][Items][]=4&Recursive[Sliced][Items][]=5&Recursive[Sliced][Items][]=a&user[id]=a&user[name]=Jon+Snow`
+	invalidJSONContent = `{"id":1,"name":"Jon Snow", "Sliced": {"Items": [1, 2, 3, 4, 5, "a"]}, "user": {"id": nil,"name":"Jon Snow"}}`
 )
 
 type (
 	user struct {
-		ID     int    `json:"id" xml:"id" form:"id" query:"id" param:"id"`
-		Name   string `json:"name" xml:"name" form:"name" query:"name" param:"name"`
-		Sliced `json:"slice" xml:"slice" form:"slice" query:"slice" param:"slice"`
+		ID    int      `json:"id" xml:"id" form:"id" query:"id" param:"id"`
+		Name  string   `json:"name" xml:"name" form:"name" query:"name" param:"name"`
+		Array []string `json:"array" xml:"array" form:"array" query:"array" param:"array"`
+		Sliced
 	}
 
 	Sliced struct {
 		Items []int
 	}
 
+	Recursive struct {
+		Array []string `json:"array" xml:"array" form:"array" query:"array" param:"array"`
+		Sliced
+	}
+
 	userValidate struct {
-		ID     int    `json:"id" xml:"id" form:"id" query:"id" param:"id" validate:"required"`
-		Name   string `json:"name" xml:"name" form:"name" query:"name" param:"name" validate:"required"`
-		User   *user  `json:"user" xml:"user" form:"user" query:"user" param:"user"`
-		Sliced `json:"slice" xml:"slice" form:"slice" query:"slice" param:"slice"`
+		ID   int    `json:"id" xml:"id" form:"id" query:"id" param:"id" validate:"required"`
+		Name string `json:"name" xml:"name" form:"name" query:"name" param:"name" validate:"required"`
+		User *user  `json:"user" xml:"user" form:"user" query:"user" param:"user"`
+		Sliced
+		Recursive
 	}
 
 	bindTestStruct struct {
@@ -213,7 +219,16 @@ func TestBindRecursive(t *testing.T) {
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		u := new(userValidate)
 		err := c.Bind(u)
-		spew.Dump(err)
+		assert.Error(t, err)
+	})
+
+	t.Run("fail form", func(t *testing.T) {
+		req := httptest.NewRequest(echo.POST, "/", strings.NewReader(invalidFormContent))
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+		u := new(userValidate)
+		err := c.Bind(u)
 		assert.Error(t, err)
 	})
 }
@@ -232,7 +247,7 @@ func TestBindXML(t *testing.T) {
 
 func TestBindForm(t *testing.T) {
 	testBindOkay(t, strings.NewReader(userForm), echo.MIMEApplicationForm)
-	testBindError(t, strings.NewReader(invalidFormContent), echo.MIMEApplicationForm)
+	testBindError(t, strings.NewReader(invalidFormContent), echo.MIMEMultipartForm)
 	testBindError(t, strings.NewReader(invalidContent), echo.MIMEOctetStream)
 	testBindError(t, strings.NewReader(userJSON), echo.MIMEMultipartForm)
 	testBindOkay(t, nil, echo.MIMEApplicationForm)
@@ -281,6 +296,19 @@ func TestBindParams(t *testing.T) {
 	}
 	e.GET("/:id/:name", testHandler)
 	e.ServeHTTP(rec, req)
+}
+
+func TestBindQueryParamsCaseSensitivePrioritized(t *testing.T) {
+	e := testNew()
+	req := httptest.NewRequest(echo.GET, "/?id=1&ID=2&NAME=Jon+Snow&name=Jon+Doe", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	u := new(user)
+	err := c.Bind(u)
+	if assert.NoError(t, err) {
+		assert.Equal(t, 1, u.ID)
+		assert.Equal(t, "Jon Doe", u.Name)
+	}
 }
 
 func TestBindUnmarshalParam(t *testing.T) {
@@ -345,6 +373,27 @@ func TestBindbindData(t *testing.T) {
 		t.Fatal(err)
 	}
 	assertBindTestStruct(t, ts)
+}
+
+func TestBindUnmarshalTypeError(t *testing.T) {
+	body := bytes.NewBufferString(`{ "id": "text" }`)
+	e := testNew()
+	req := httptest.NewRequest(echo.POST, "/", body)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	u := new(user)
+
+	err := c.Bind(u)
+
+	if assert.IsType(t, &json.UnmarshalTypeError{}, err) {
+		jErr := err.(*json.UnmarshalTypeError)
+		assert.Equal(t, "string", jErr.Value)
+		assert.Equal(t, "user", jErr.Struct)
+		assert.Equal(t, "id", jErr.Field)
+		assert.Equal(t, int64(14), jErr.Offset)
+	}
 }
 
 func TestBindSetWithProperType(t *testing.T) {

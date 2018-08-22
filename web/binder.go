@@ -49,13 +49,13 @@ func (b *binder) Bind(i interface{}, c echo.Context) (err error) {
 		}
 	}()
 
-	var params = make(map[string][]string, len(c.ParamNames()))
+	var qParams = make(map[string][]string, len(c.ParamNames()))
 
 	for _, name := range c.ParamNames() {
-		params[name] = []string{c.Param(name)}
+		qParams[name] = []string{c.Param(name)}
 	}
 
-	if err = b.bindData(i, params, "param"); err != nil {
+	if err = b.bindData(i, qParams, "param"); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
@@ -130,6 +130,21 @@ func (b *binder) bindData(ptr interface{}, data map[string][]string, tag string)
 			}
 		}
 		inputValue, exists := data[inputFieldName]
+		if !exists {
+			// Go json.Unmarshal supports case insensitive binding.  However the
+			// url params are bound case sensitive which is inconsistent.  To
+			// fix this we must check all of the map values in a
+			// case-insensitive search.
+			inputFieldName = strings.ToLower(inputFieldName)
+			for k, v := range data {
+				if strings.ToLower(k) == inputFieldName {
+					inputValue = v
+					exists = true
+					break
+				}
+			}
+		}
+
 		if !exists {
 			continue
 		}
