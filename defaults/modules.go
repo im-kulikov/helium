@@ -12,10 +12,11 @@ import (
 )
 
 var Module = module.Module{}.
-	Append(grace.Module).      // graceful context
-	Append(settings.Module).   // settings
-	Append(logger.Module).     // logger
-	Append(web.ServersModule). // web-servers
-	Append(orm.Module).        // pg-connection
-	Append(redis.Module).      // redis-connection
-	Append(workers.Module)     // workers
+	Append(
+		grace.Module,      // graceful context
+		settings.Module,   // settings
+		logger.Module,     // logger
+		web.ServersModule, // web-servers
+		orm.Module,        // pg-connection
+		redis.Module,      // redis-connection
+		workers.Module)    // workers

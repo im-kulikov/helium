@@ -26,12 +26,12 @@
   version = "v8.0.0"
 
 [[projects]]
-  digest = "1:3e47ff50377570f1b9a01c7fbb581a8d17dca499569c92bdce39eb896be14746"
+  digest = "1:a1f4c0dc0de1310fe45eb51fa24ec1a09f91193d782351dd72bcc5753724f40d"
   name = "github.com/chapsuk/mserv"
   packages = ["."]
   pruneopts = "NUT"
-  revision = "107033951ceb1bc2309082e6d595a93860714ddd"
-  version = "v0.3"
+  revision = "87bf9f6874cd4155901eaba230afff3df3d2c2bc"
+  version = "v0.3.1"
 
 [[projects]]
   digest = "1:430fe1e9f8112d6408f2e1af17882c54cf24bc536f8653fe707ab4cb23f49568"
@@ -231,6 +231,21 @@
   packages = ["."]
   pruneopts = "NUT"
   revision = "f15292f7a699fcc1a38a80977f80a046874ba8ac"
+
+[[projects]]
+  digest = "1:231972084a90285192fa1edcfca436122b6f3418b14d49f54ccc27f08dcf3006"
+  name = "github.com/nats-io/gnatsd"
+  packages = [
+    "conf",
+    "logger",
+    "server",
+    "server/pse",
+    "test",
+    "util",
+  ]
+  pruneopts = "NUT"
+  revision = "6608e9ac3be979dcb0614b772cc86a87b71acaa3"
+  version = "v1.2.0"
 
 [[projects]]
   digest = "1:7384857e3cd6009fa5ee212e3518773cdf222fe44aab9c3095a92b7a73f7612c"
@@ -471,11 +486,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:44f085b3392feb6a54d3d5e4a25a6f7f9d0cb898fb02c1baf384ff4287ec33ad"
+  digest = "1:ecfa68fe6a7559e9840d4afdcf5af74750bf147c89e30687578a95042b26bea8"
   name = "golang.org/x/crypto"
   packages = [
     "acme",
     "acme/autocert",
+    "bcrypt",
+    "blowfish",
+    "ssh/terminal",
   ]
   pruneopts = "NUT"
   revision = "a2144134853fc9a27a7b1e3eb4f19f1a76df13c9"
@@ -498,9 +516,17 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:df8e9dc7e57401a55f00096dfa9ff55d0a2fd7d2baf7362d53ac1937695a7cf1"
+  digest = "1:2d7edfb0bbbc458d95c8fa8263b199407da5c2d5d6966e279899ee46fb4977f1"
   name = "golang.org/x/sys"
-  packages = ["unix"]
+  packages = [
+    "unix",
+    "windows",
+    "windows/registry",
+    "windows/svc",
+    "windows/svc/debug",
+    "windows/svc/eventlog",
+    "windows/svc/mgr",
+  ]
   pruneopts = "NUT"
   revision = "ac767d655b305d4e9612f5f6e33120b9176c4ad4"
 
@@ -598,6 +624,7 @@
     "github.com/go-redis/redis",
     "github.com/labstack/echo",
     "github.com/labstack/gommon/log",
+    "github.com/nats-io/gnatsd/test",
     "github.com/nats-io/go-nats",
     "github.com/pkg/errors",
     "github.com/prometheus/client_golang/prometheus/promhttp",

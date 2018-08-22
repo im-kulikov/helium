@@ -9,15 +9,11 @@ import (
 
 var (
 	mod = module.Module{}.
-		Append(grace.Module).
-		Append(settings.Module).
-		Append(logger.Module)
+		Append(
+			grace.Module,
+			settings.Module,
+			logger.Module)
 
-	ServeCommandModule = module.Module{
-		{Constructor: NewServe},
-	}.Append(mod)
-
-	TestCommandModule = module.Module{
-		{Constructor: NewTest},
-	}.Append(mod)
+	ServeCommandModule = module.New(NewServe).Append(mod)
+	TestCommandModule  = module.New(NewTest).Append(mod)
 )

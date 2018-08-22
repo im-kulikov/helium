@@ -13,12 +13,11 @@ import (
 	"go.uber.org/dig"
 )
 
-var mod = module.Module{
-	{Constructor: newApp},
-}.
-	Append(settings.Module).
-	Append(logger.Module).
-	Append(grace.Module)
+var mod = module.New(newApp).
+	Append(
+		settings.Module,
+		logger.Module,
+		grace.Module)
 
 type App struct {
 	v *viper.Viper
