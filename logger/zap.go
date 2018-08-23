@@ -13,6 +13,7 @@ type Config struct {
 	Format string
 }
 
+// NewLoggerConfig returns logger config
 func NewLoggerConfig(v *viper.Viper) *Config {
 	return &Config{
 		Level:  v.GetString("log.level"),
@@ -48,12 +49,12 @@ func (c Config) SafeFormat() string {
 	return c.Format
 }
 
-// NewSugaredLogger
+// NewSugaredLogger converts from zap.Logger
 func NewSugaredLogger(log *zap.Logger) *zap.SugaredLogger {
 	return log.Sugar()
 }
 
-// Init logger
+// NewLogger init logger
 func NewLogger(lcfg *Config, app *settings.App) (*zap.Logger, error) {
 	cfg := zap.NewProductionConfig()
 	cfg.OutputPaths = []string{"stdout"}

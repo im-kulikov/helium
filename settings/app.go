@@ -2,6 +2,7 @@ package settings
 
 import "github.com/im-kulikov/helium/module"
 
+// App configuration
 type App struct {
 	File         string
 	Type         string
@@ -17,7 +18,7 @@ func (a *App) Provider() *module.Provider {
 	}
 }
 
-// SafeConfigType returns config type, default config type: yml
+// SafeType returns config type, default config type: yml
 // returns yml if config type not supported
 func (a App) SafeType() string {
 	switch t := a.Type; t {

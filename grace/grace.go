@@ -10,10 +10,12 @@ import (
 	"go.uber.org/zap"
 )
 
+// Module graceful context
 var Module = module.Module{
 	{Constructor: NewGracefulContext},
 }
 
+// NewGracefulContext returns graceful context
 func NewGracefulContext(l *zap.SugaredLogger) context.Context {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {

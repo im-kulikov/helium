@@ -12,6 +12,7 @@ import (
 )
 
 type (
+	// APIParams struct
 	APIParams struct {
 		dig.In
 
@@ -20,6 +21,7 @@ type (
 		Handler http.Handler `optional:"true"`
 	}
 
+	// MultiServerParams struct
 	MultiServerParams struct {
 		dig.In
 
@@ -27,6 +29,7 @@ type (
 		Servers []mserv.Server `group:"web_server"`
 	}
 
+	// ServerResult struct
 	ServerResult struct {
 		dig.Out
 
@@ -60,7 +63,7 @@ func NewMetricsServer(v *viper.Viper, l logger.StdLogger) ServerResult {
 	return newHTTPServer(v, "metrics", promhttp.Handler(), l)
 }
 
-// NewAPIServerParams params for create api server by http.Handler from DI container
+// NewAPIServer creates api server by http.Handler from DI container
 func NewAPIServer(v *viper.Viper, l logger.StdLogger, h http.Handler) ServerResult {
 	return newHTTPServer(v, "api", h, l)
 }

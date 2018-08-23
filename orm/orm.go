@@ -42,6 +42,7 @@ var (
 	ErrEmptyLogger = errors.New("database empty logger")
 )
 
+// NewDefaultConfig returns connection config
 func NewDefaultConfig(v *viper.Viper) (*Config, error) {
 	if !v.IsSet("postgres") {
 		return nil, ErrEmptyConfig
@@ -57,7 +58,7 @@ func NewDefaultConfig(v *viper.Viper) (*Config, error) {
 	}, nil
 }
 
-// New database connection
+// NewConnection returns database connection
 func NewConnection(opts *Config, l *zap.SugaredLogger) (db *pg.DB, err error) {
 	if opts == nil {
 		err = ErrEmptyConfig

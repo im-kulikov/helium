@@ -12,7 +12,7 @@ var Module = module.Module{
 	{Constructor: New},
 }
 
-// Init settings
+// New init viper settings
 func New(app *App) (*viper.Viper, error) {
 	v := viper.New()
 	v.SetEnvPrefix(app.Name)

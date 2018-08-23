@@ -14,6 +14,8 @@ var (
 			settings.Module,
 			logger.Module)
 
+	// ServeCommandModule modules for web-application
 	ServeCommandModule = module.New(NewServe).Append(mod)
-	TestCommandModule  = module.New(NewTest).Append(mod)
+	// TestCommandModule modules for test
+	TestCommandModule = module.New(NewTest).Append(mod)
 )

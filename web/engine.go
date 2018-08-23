@@ -19,6 +19,7 @@ type (
 		Result []string `json:"result"`
 	}
 
+	// EngineParams struct
 	EngineParams struct {
 		dig.In
 
@@ -29,6 +30,7 @@ type (
 		Validator  echo.Validator `optional:"true"`
 	}
 
+	// CustomError interface
 	CustomError interface {
 		FormatResponse(ctx echo.Context) error
 	}
@@ -81,6 +83,7 @@ func captureError(log *zap.SugaredLogger) echo.HTTPErrorHandler {
 	}
 }
 
+// NewEngine returns configured echo engine
 func NewEngine(params EngineParams) *echo.Echo {
 	e := echo.New()
 

@@ -19,6 +19,7 @@ var mod = module.New(newApp).
 		logger.Module,
 		grace.Module)
 
+// App struct
 type App struct {
 	v *viper.Viper
 }
@@ -27,6 +28,7 @@ func newApp(v *viper.Viper) helium.App {
 	return &App{v: v}
 }
 
+// Run application
 func (a App) Run(ctx context.Context) error {
 	spew.Dump(a.v.AllSettings())
 

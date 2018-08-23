@@ -59,7 +59,7 @@ func NewDefaultConfig(v *viper.Viper) (*Config, error) {
 	}, nil
 }
 
-// New nats client
+// NewConnection of nats client
 func NewConnection(opts *Config) (bus *Client, err error) {
 	if opts == nil {
 		return nil, ErrEmptyConfig

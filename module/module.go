@@ -3,8 +3,10 @@ package module
 import "go.uber.org/dig"
 
 type (
+	// Module type
 	Module []*Provider
 
+	// Provider struct
 	Provider struct {
 		Constructor interface{}
 		Options     []dig.ProvideOption

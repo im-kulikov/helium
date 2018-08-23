@@ -10,6 +10,7 @@ import (
 )
 
 type (
+	// ServeParams struct
 	ServeParams struct {
 		dig.In
 
@@ -23,6 +24,7 @@ type (
 	}
 )
 
+// NewServe application
 func NewServe(params ServeParams) helium.App {
 	return serveApp{
 		SugaredLogger: params.Logger,
@@ -30,6 +32,7 @@ func NewServe(params ServeParams) helium.App {
 	}
 }
 
+// Run application
 func (a serveApp) Run(ctx context.Context) error {
 	a.Info("app :: serve command")
 	for key, val := range a.AllSettings() {

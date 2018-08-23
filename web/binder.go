@@ -16,6 +16,7 @@ type binder struct {
 	Validator
 }
 
+// NewBinder returns custom echo.Binder
 func NewBinder(v Validator) echo.Binder {
 	return &binder{Validator: v}
 }

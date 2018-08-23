@@ -10,6 +10,7 @@ import (
 )
 
 type (
+	// TestParams struct
 	TestParams struct {
 		dig.In
 
@@ -23,6 +24,7 @@ type (
 	}
 )
 
+// NewTest application
 func NewTest(params ServeParams) helium.App {
 	return testApp{
 		SugaredLogger: params.Logger,
@@ -30,6 +32,7 @@ func NewTest(params ServeParams) helium.App {
 	}
 }
 
+// Run application
 func (a testApp) Run(ctx context.Context) error {
 	a.Info("app :: test command")
 	for key, val := range a.AllSettings() {

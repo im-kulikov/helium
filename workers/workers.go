@@ -12,6 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// Module of workers
 var Module = module.Module{
 	{Constructor: NewWorkersGroup},
 	{Constructor: NewWorkers},

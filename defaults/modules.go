@@ -11,6 +11,7 @@ import (
 	"github.com/im-kulikov/helium/workers"
 )
 
+// Module defaults
 var Module = module.Module{}.
 	Append(
 		grace.Module,      // graceful context

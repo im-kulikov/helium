@@ -9,15 +9,18 @@ import (
 )
 
 type (
+	// App implementation for helium
 	App interface {
 		Run(ctx context.Context) error
 	}
 
+	// Helium struct
 	Helium struct {
 		di *dig.Container
 	}
 )
 
+// New helium instance
 func New(cfg *settings.App, mod module.Module) (*Helium, error) {
 	h := &Helium{
 		di: dig.New(),
