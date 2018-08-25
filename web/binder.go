@@ -50,14 +50,25 @@ func (b *binder) Bind(i interface{}, c echo.Context) (err error) {
 		}
 	}()
 
-	var qParams = make(map[string][]string, len(c.ParamNames()))
+	defer func() {
+		if err == nil {
+			err = b.validate(i, c)
+		}
+	}()
 
-	for _, name := range c.ParamNames() {
+	var (
+		paramNames = c.ParamNames()
+		qParams    = make(map[string][]string, len(paramNames))
+	)
+
+	for _, name := range paramNames {
 		qParams[name] = []string{c.Param(name)}
 	}
 
-	if err = b.bindData(i, qParams, "param"); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	if len(paramNames) > 0 {
+		if err = b.bindData(i, qParams, "param"); err != nil {
+			return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		}
 	}
 
 	if req.ContentLength == 0 {
@@ -65,9 +76,9 @@ func (b *binder) Bind(i interface{}, c echo.Context) (err error) {
 			if err = b.bindData(i, c.QueryParams(), "query"); err != nil {
 				return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 			}
-			return b.validate(i, c)
+			return
 		} else if req.Method == "POST" {
-			return b.validate(i, c)
+			return
 		}
 		return echo.NewHTTPError(http.StatusBadRequest, "Request body can't be empty")
 	}
@@ -92,8 +103,7 @@ func (b *binder) Bind(i interface{}, c echo.Context) (err error) {
 	default:
 		return echo.ErrUnsupportedMediaType
 	}
-
-	return b.validate(i, c)
+	return
 }
 
 func dumpError(err error, logger echo.Logger, dump []byte) {

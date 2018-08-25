@@ -8,6 +8,7 @@ import (
 	"mime/multipart"
 	"net/http/httptest"
 	"reflect"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -17,20 +18,24 @@ import (
 )
 
 const (
-	userJSON           = `{"id":1,"name":"Jon Snow", "Sliced": {"Items": [1, 2, 3, 4, 5]}}`
-	userXML            = `<user><id>1</id><name>Jon Snow</name></user>`
-	userForm           = `id=1&name=Jon Snow&array[]=a&array[]=b&array[]=c`
-	userParam          = `/1/Jon%20Snow`
-	invalidContent     = "invalid content"
-	invalidFormContent = `ID=a&name=Jon+Snow&Sliced[Items][]=1&Sliced[Items][]=2&Sliced[Items][]=3&Sliced[Items][]=4&Sliced[Items][]=5&Sliced[Items][]=a&Recursive[array][]=a&Recursive[array][]=b&Recursive[Sliced][Items][]=1&Recursive[Sliced][Items][]=2&Recursive[Sliced][Items][]=3&Recursive[Sliced][Items][]=4&Recursive[Sliced][Items][]=5&Recursive[Sliced][Items][]=a&user[id]=a&user[name]=Jon+Snow`
-	invalidJSONContent = `{"id":1,"name":"Jon Snow", "Sliced": {"Items": [1, 2, 3, 4, 5, "a"]}, "user": {"id": nil,"name":"Jon Snow"}}`
+	userJSON                    = `{"id":1,"name":"Jon Snow", "array": [], "Sliced": {"Items": [1, 2, 3, 4, 5]}}`
+	userXML                     = `<user><id>1</id><name>Jon Snow</name></user>`
+	userForm                    = `id=1&name=Jon Snow&array[]=a&array[]=b&array[]=c`
+	userParam                   = `/1/Jon%20Snow`
+	invalidUserParam            = `/abc/Jon%20Snow`
+	invalidContent              = "invalid content"
+	invalidFormContent          = `ID=1&name=Jon+Snow&Sliced[Items][]=b&Sliced[Items][]=1&Sliced[Items][]=2&Sliced[Items][]=3&Sliced[Items][]=4&Sliced[Items][]=5&Sliced[Items][]=a&Recursive[array][]=a&Recursive[array][]=b&Recursive[Sliced][Items][]=1&Recursive[Sliced][Items][]=2&Recursive[Sliced][Items][]=3&Recursive[Sliced][Items][]=4&Recursive[Sliced][Items][]=5&Recursive[Sliced][Items][]=a&user[id]=a&user[name]=Jon+Snow&array[]=1&array=b`
+	invalidFormArrayContent     = `array=0,2,3,4,5,6,a,b,C`
+	invalidFormRecursiveContent = `first=0,2,3,4,5,6&Second=1,a,b,c&result=1,a,b,c`
+	invalidJSONContent          = `{"id":1,"name":"Jon Snow", "Sliced": {"Items": [1, 2, 3, 4, 5, "a"]}, "user": {"id": nil,"name":"Jon Snow"}}`
+	invalidFormSliced           = `Items=1&Items=2&Items=3&Items=a`
 )
 
 type (
 	user struct {
 		ID    int      `json:"id" xml:"id" form:"id" query:"id" param:"id"`
 		Name  string   `json:"name" xml:"name" form:"name" query:"name" param:"name"`
-		Array []string `json:"array" xml:"array" form:"array" query:"array" param:"array"`
+		Array IntArray `json:"array" xml:"array" form:"array" query:"array" param:"array"`
 		Sliced
 	}
 
@@ -38,15 +43,25 @@ type (
 		Items []int
 	}
 
+	ErrType struct {
+		Result ErrArray
+	}
+
+	WithError struct {
+		First  IntArray `json:"first" xml:"first" form:"first" query:"first" param:"first"`
+		Second ErrType  `json:"" xml:"" form:"" query:"" param:""`
+	}
+
 	Recursive struct {
-		Array []string `json:"array" xml:"array" form:"array" query:"array" param:"array"`
+		Array IntArray `json:"array" xml:"array" form:"array" query:"array" param:"array"`
 		Sliced
 	}
 
 	userValidate struct {
-		ID   int    `json:"id" xml:"id" form:"id" query:"id" param:"id" validate:"required"`
-		Name string `json:"name" xml:"name" form:"name" query:"name" param:"name" validate:"required"`
-		User *user  `json:"user" xml:"user" form:"user" query:"user" param:"user"`
+		ID    int      `json:"id" xml:"id" form:"id" query:"id" param:"id" validate:"required"`
+		Name  string   `json:"name" xml:"name" form:"name" query:"name" param:"name" validate:"required"`
+		User  *user    `json:"user" xml:"user" form:"user" query:"user" param:"user"`
+		Array IntArray `json:"array" xml:"array" form:"array" query:"array" param:"array" validate:"required"`
 		Sliced
 		Recursive
 	}
@@ -88,6 +103,8 @@ type (
 	}
 	Timestamp   time.Time
 	StringArray []string
+	IntArray    []int
+	ErrArray    struct{}
 	Struct      struct {
 		Foo string
 	}
@@ -102,6 +119,24 @@ func (t *Timestamp) UnmarshalParam(src string) error {
 func (a *StringArray) UnmarshalParam(src string) error {
 	*a = StringArray(strings.Split(src, ","))
 	return nil
+}
+
+func (a *IntArray) UnmarshalParam(src string) error {
+	array := strings.Split(src, ",")
+	result := make(IntArray, 0, len(array))
+	for _, item := range array {
+		v, err := strconv.Atoi(item)
+		if err != nil {
+			return err
+		}
+		result = append(result, v)
+	}
+	*a = result
+	return nil
+}
+
+func (a *ErrArray) UnmarshalParam(src string) error {
+	return errors.New("test")
 }
 
 func (s *Struct) UnmarshalParam(src string) error {
@@ -231,6 +266,36 @@ func TestBindRecursive(t *testing.T) {
 		err := c.Bind(u)
 		assert.Error(t, err)
 	})
+
+	t.Run("fail form array", func(t *testing.T) {
+		req := httptest.NewRequest(echo.POST, "/", strings.NewReader(invalidFormArrayContent))
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+		u := new(Recursive)
+		err := c.Bind(u)
+		assert.Error(t, err)
+	})
+
+	t.Run("fail form recursive", func(t *testing.T) {
+		req := httptest.NewRequest(echo.POST, "/", strings.NewReader(invalidFormRecursiveContent))
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+		u := new(WithError)
+		err := c.Bind(u)
+		assert.Error(t, err)
+	})
+
+	t.Run("fail form sliced", func(t *testing.T) {
+		req := httptest.NewRequest(echo.POST, "/", strings.NewReader(invalidFormSliced))
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationForm)
+		u := new(Sliced)
+		err := c.Bind(u)
+		assert.Error(t, err)
+	})
 }
 
 func TestBindJSON(t *testing.T) {
@@ -282,20 +347,33 @@ func TestBindQueryParams(t *testing.T) {
 
 func TestBindParams(t *testing.T) {
 	e := testNew()
-	req := httptest.NewRequest(echo.GET, userParam, nil)
 	rec := httptest.NewRecorder()
-	testHandler := func(ctx echo.Context) error {
-		u := new(user)
-		err := ctx.Bind(u)
-		if assert.NoError(t, err) {
-			assert.Equal(t, 1, u.ID)
-			assert.Equal(t, "Jon Snow", u.Name)
-		}
+	t.Run("should be ok", func(t *testing.T) {
+		req := httptest.NewRequest(echo.GET, userParam, nil)
+		testHandler := func(ctx echo.Context) error {
+			u := new(user)
+			err := ctx.Bind(u)
+			if assert.NoError(t, err) {
+				assert.Equal(t, 1, u.ID)
+				assert.Equal(t, "Jon Snow", u.Name)
+			}
 
-		return nil
-	}
-	e.GET("/:id/:name", testHandler)
-	e.ServeHTTP(rec, req)
+			return nil
+		}
+		e.GET("/:id/:name", testHandler)
+		e.ServeHTTP(rec, req)
+	})
+	t.Run("should fail", func(t *testing.T) {
+		req := httptest.NewRequest(echo.GET, invalidUserParam, nil)
+		testHandler := func(ctx echo.Context) error {
+			u := new(user)
+			err := ctx.Bind(u)
+			assert.Error(t, err)
+			return nil
+		}
+		e.GET("/:id/:name", testHandler)
+		e.ServeHTTP(rec, req)
+	})
 }
 
 func TestBindQueryParamsCaseSensitivePrioritized(t *testing.T) {

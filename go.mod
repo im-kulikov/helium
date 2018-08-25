@@ -21,7 +21,7 @@ require (
 	github.com/hpcloud/tail v1.0.0 // indirect
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
-	github.com/labstack/echo v0.0.0-20180412143600-6d227dfea4d2
+	github.com/labstack/echo v3.2.2-0.20180412143600-6d227dfea4d2+incompatible
 	github.com/labstack/gommon v0.0.0-20180613044413-d6898124de91
 	github.com/magiconair/properties v1.8.0 // indirect
 	github.com/mattn/go-colorable v0.0.9 // indirect
