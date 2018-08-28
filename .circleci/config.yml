@@ -17,6 +17,11 @@ jobs:
     - run: git config --global url.ssh://git@github.com/im-kulikov.insteadOf https://github.com/im-kulikov
     - checkout
     - restore_cache:
+        keys:
+        - gomod-{{ .Branch }}-{{ checksum "go.sum" }}
+        - gomod-{{ .Branch }}-{{ checksum "go.mod" }}
+        - gomod-{{ .Branch }}
+        - gomod-im-kulikov-helium
         paths:
         - $GOPATH/pkg/mod
     - run:
@@ -26,6 +31,11 @@ jobs:
               go mod tidy
           fi
     - save_cache:
+        keys:
+        - gomod-{{ .Branch }}-{{ checksum "go.sum" }}
+        - gomod-{{ .Branch }}-{{ checksum "go.mod" }}
+        - gomod-{{ .Branch }}
+        - gomod-im-kulikov-helium
         paths:
         - $GOPATH/pkg/mod
     - run: go test -v -cover -coverprofile=helium.coverprofile ./...
