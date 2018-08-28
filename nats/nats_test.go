@@ -29,6 +29,12 @@ var (
 	_ = Token
 	_ = SetCustomDialer
 	_ = UseOldRequestStyle
+
+	_ = DISCONNECTED
+	_ = CONNECTED
+	_ = CLOSED
+	_ = RECONNECTING
+	_ = CONNECTING
 )
 
 func TestNewDefaultConfig(t *testing.T) {

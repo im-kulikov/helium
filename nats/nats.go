@@ -36,6 +36,14 @@ type (
 	Subscription = nats.Subscription
 )
 
+const (
+	DISCONNECTED = nats.DISCONNECTED
+	CONNECTED    = nats.CONNECTED
+	CLOSED       = nats.CLOSED
+	RECONNECTING = nats.RECONNECTING
+	CONNECTING   = nats.CONNECTING
+)
+
 var (
 	// Module is default Nats client
 	Module = module.Module{
