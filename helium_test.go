@@ -3,13 +3,19 @@ package helium
 import (
 	"context"
 	"errors"
+	"fmt"
+	"io"
+	"log"
+	"os"
 	"testing"
 
+	"github.com/bouk/monkey"
 	"github.com/im-kulikov/helium/grace"
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/settings"
 	. "github.com/smartystreets/goconvey/convey"
+	"go.uber.org/zap"
 )
 
 type (
@@ -51,6 +57,40 @@ func TestHelium(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			So(h.Run(), ShouldBeError)
+		})
+
+		Convey("check catch", func() {
+			var exitCode int
+			monkey.Patch(os.Exit, func(code int) { exitCode = code })
+			monkey.Patch(log.Fatal, func(...interface{}) { exitCode = 2 })
+			defer monkey.Unpatch(os.Exit)
+
+			Convey("should panic", func() {
+				monkey.Patch(logger.NewLogger, func(*logger.Config, *settings.App) (*zap.Logger, error) {
+					return nil, errors.New("test")
+				})
+				defer monkey.Unpatch(logger.NewLogger)
+
+				err := errors.New("test")
+				Catch(err)
+				So(exitCode, ShouldEqual, 2)
+			})
+
+			Convey("should catch error", func() {
+				monkey.Patch(fmt.Fprintf, func(io.Writer, string, ...interface{}) (int, error) {
+					return 0, nil
+				})
+				defer monkey.Unpatch(fmt.Fprintf)
+
+				err := errors.New("test")
+				Catch(err)
+				So(exitCode, ShouldEqual, 1)
+			})
+
+			Convey("shouldn't catch any", func() {
+				Catch(nil)
+				So(exitCode, ShouldBeZeroValue)
+			})
 		})
 	})
 }

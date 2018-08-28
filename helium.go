@@ -2,9 +2,12 @@ package helium
 
 import (
 	"context"
+	stdlog "log"
 
+	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/settings"
+	"github.com/spf13/viper"
 	"go.uber.org/dig"
 )
 
@@ -42,4 +45,26 @@ func (p Helium) Run() error {
 	return p.di.Invoke(func(ctx context.Context, app App) error {
 		return app.Run(ctx)
 	})
+}
+
+// Catch errors
+func Catch(err error) {
+	if err == nil {
+		return
+	}
+
+	v := viper.New()
+	log, logErr := logger.
+		NewLogger(logger.NewLoggerConfig(v), &settings.App{
+			Name:         "",
+			BuildVersion: "",
+		})
+	if logErr != nil {
+		stdlog.Fatal(err)
+	} else {
+		log.
+			Sugar().
+			Fatalw("Can't run app",
+				"error", err)
+	}
 }

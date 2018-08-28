@@ -51,7 +51,6 @@ func main() {
 		},
 	}
 
-	if err := c.Run(os.Args); err != nil {
-		panic(err)
-	}
+	err := c.Run(os.Args)
+	helium.Catch(err)
 }

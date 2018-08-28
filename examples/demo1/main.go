@@ -10,7 +10,6 @@ import (
 	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/settings"
 	"github.com/spf13/viper"
-	"go.uber.org/dig"
 )
 
 var mod = module.New(newApp).
@@ -43,12 +42,6 @@ func main() {
 		BuildTime:    "now",
 		BuildVersion: "dev",
 	}, mod)
-
-	if err != nil {
-		panic(dig.RootCause(err))
-	}
-
-	if err := h.Run(); err != nil {
-		panic(err)
-	}
+	helium.Catch(err)
+	helium.Catch(h.Run())
 }

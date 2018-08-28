@@ -13,6 +13,9 @@ type (
 
 	// Client alias
 	Client = nats.Conn
+
+	// Msg nats message
+	Msg = nats.Msg
 )
 
 var (
