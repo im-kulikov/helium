@@ -26,10 +26,7 @@ jobs:
         - $GOPATH/pkg/mod
     - run:
         name: download-libraries
-        command: |
-          if [ ! -d /go/src/github.com/im-kulikov/helium/vendor ]; then
-              go mod tidy
-          fi
+        command: go mod tidy
     - save_cache:
         keys:
         - gomod-{{ .Branch }}-{{ checksum "go.sum" }}
