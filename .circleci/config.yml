@@ -26,7 +26,9 @@ jobs:
         - $GOPATH/pkg/mod
     - run:
         name: download-libraries
-        command: go mod tidy
+        command: |
+          go mod tidy
+          go mod download
     - save_cache:
         keys:
         - gomod-{{ .Branch }}-{{ checksum "go.sum" }}
