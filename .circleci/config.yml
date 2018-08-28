@@ -30,11 +30,19 @@ jobs:
           go mod tidy
           go mod download
     - save_cache:
-        keys:
-        - gomod-{{ .Branch }}-{{ checksum "go.sum" }}
-        - gomod-{{ .Branch }}-{{ checksum "go.mod" }}
-        - gomod-{{ .Branch }}
-        - gomod-im-kulikov-helium
+        key: gomod-{{ .Branch }}-{{ checksum "go.sum" }}
+        paths:
+        - $GOPATH/pkg/mod
+    - save_cache:
+        key: gomod-{{ .Branch }}-{{ checksum "go.mod" }}
+        paths:
+        - $GOPATH/pkg/mod
+    - save_cache:
+        key: gomod-{{ .Branch }}
+        paths:
+        - $GOPATH/pkg/mod
+    - save_cache:
+        key: gomod-im-kulikov-helium
         paths:
         - $GOPATH/pkg/mod
     - run: go test -v -cover -coverprofile=helium.coverprofile ./...
