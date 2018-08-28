@@ -25,7 +25,7 @@ jobs:
         - gomod-{{ .Branch }}
         - gomod-im-kulikov-helium
         paths:
-        - $GOPATH/pkg/mod
+        - /go/pkg/mod
     - run:
         name: download-libraries
         command: |
@@ -34,18 +34,18 @@ jobs:
     - save_cache:
         key: gomod-{{ .Branch }}-{{ checksum "go.sum" }}
         paths:
-        - $GOPATH/pkg/mod
+        - /go/pkg/mod
     - save_cache:
         key: gomod-{{ .Branch }}-{{ checksum "go.mod" }}
         paths:
-        - $GOPATH/pkg/mod
+        - /go/pkg/mod
     - save_cache:
         key: gomod-{{ .Branch }}
         paths:
-        - $GOPATH/pkg/mod
+        - /go/pkg/mod
     - save_cache:
         key: gomod-im-kulikov-helium
         paths:
-        - $GOPATH/pkg/mod
+        - /go/pkg/mod
     - run: go test -v -cover -coverprofile=helium.coverprofile ./...
     - run: bash -c "bash <(curl -s https://codecov.io/bash) -f helium.coverprofile -t $(CODECOV_TOKEN)"
