@@ -1,4 +1,9 @@
 version: 2
+machine:
+  docker_layer_caching: true
+dependencies:
+  cache_directories:
+  - "~/docker-images"
 jobs:
   build:
     working_directory: /go/src/github.com/im-kulikov/helium
