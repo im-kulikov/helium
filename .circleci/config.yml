@@ -20,10 +20,10 @@ jobs:
     - checkout
     - restore_cache:
         keys:
-        - gomod-{{ .Branch }}-{{ checksum "go.sum" }}
-        - gomod-{{ .Branch }}-{{ checksum "go.mod" }}
-        - gomod-{{ .Branch }}
-        - gomod-im-kulikov-helium
+        - gomodules-{{ .Branch }}-{{ checksum "go.sum" }}
+        - gomodules-{{ .Branch }}-{{ checksum "go.mod" }}
+        - gomodules-{{ .Branch }}
+        - gomodules-im-kulikov-helium
         paths:
         - /go/pkg/mod
     - run:
@@ -32,19 +32,19 @@ jobs:
           go mod tidy
           go mod download
     - save_cache:
-        key: gomod-{{ .Branch }}-{{ checksum "go.sum" }}
+        key: gomodules-{{ .Branch }}-{{ checksum "go.sum" }}
         paths:
         - /go/pkg/mod
     - save_cache:
-        key: gomod-{{ .Branch }}-{{ checksum "go.mod" }}
+        key: gomodules-{{ .Branch }}-{{ checksum "go.mod" }}
         paths:
         - /go/pkg/mod
     - save_cache:
-        key: gomod-{{ .Branch }}
+        key: gomodules-{{ .Branch }}
         paths:
         - /go/pkg/mod
     - save_cache:
-        key: gomod-im-kulikov-helium
+        key: gomodules-im-kulikov-helium
         paths:
         - /go/pkg/mod
     - run: go test -v -cover -coverprofile=helium.coverprofile ./...
