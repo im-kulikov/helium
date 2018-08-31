@@ -21,7 +21,7 @@ const (
 	userJSON                    = `{"id":1,"name":"Jon Snow", "array": [], "Sliced": {"Items": [1, 2, 3, 4, 5]}}`
 	userXML                     = `<user><id>1</id><name>Jon Snow</name></user>`
 	userForm                    = `id=1&name=Jon Snow&array[]=a&array[]=b&array[]=c`
-	userParam                   = `/1/Jon%20Snow`
+	userParam                   = `/1/Jon%20Snow/1,2,3,4,5`
 	invalidUserParam            = `/abc/Jon%20Snow`
 	invalidContent              = "invalid content"
 	invalidFormContent          = `ID=1&name=Jon+Snow&Sliced[Items][]=b&Sliced[Items][]=1&Sliced[Items][]=2&Sliced[Items][]=3&Sliced[Items][]=4&Sliced[Items][]=5&Sliced[Items][]=a&Recursive[array][]=a&Recursive[array][]=b&Recursive[Sliced][Items][]=1&Recursive[Sliced][Items][]=2&Recursive[Sliced][Items][]=3&Recursive[Sliced][Items][]=4&Recursive[Sliced][Items][]=5&Recursive[Sliced][Items][]=a&user[id]=a&user[name]=Jon+Snow&array[]=1&array=b`
@@ -32,10 +32,19 @@ const (
 )
 
 type (
+	// id-named fields
+	testUser struct {
+		ID      int `param:"userid"`
+		NameID  int `param:"nameid"`
+		GroupID int `param:"groupid"`
+		SameID  int `param:"sameid"`
+	}
+
 	user struct {
-		ID    int      `json:"id" xml:"id" form:"id" query:"id" param:"id"`
-		Name  string   `json:"name" xml:"name" form:"name" query:"name" param:"name"`
-		Array IntArray `json:"array" xml:"array" form:"array" query:"array" param:"array"`
+		ID          int         `json:"id" xml:"id" form:"id" query:"id" param:"id"`
+		Name        string      `json:"name" xml:"name" form:"name" query:"name" param:"name"`
+		Array       IntArray    `json:"array" xml:"array" form:"array" query:"array" param:"array"`
+		StringArray StringArray `json:"string_array" xml:"string_array" form:"string_array" query:"string_array" param:"string_array"`
 		Sliced
 	}
 
@@ -361,6 +370,39 @@ func TestBindParams(t *testing.T) {
 			return nil
 		}
 		e.GET("/:id/:name", testHandler)
+		e.ServeHTTP(rec, req)
+	})
+	t.Run("should be ok for multiple values", func(t *testing.T) {
+		req := httptest.NewRequest(echo.GET, userParam, nil)
+		testHandler := func(ctx echo.Context) error {
+			u := new(user)
+			err := ctx.Bind(u)
+			if assert.NoError(t, err) {
+				assert.Equal(t, 1, u.ID)
+				assert.Equal(t, "Jon Snow", u.Name)
+				assert.Equal(t, []string{"1", "2", "3", "4", "5"}, []string(u.StringArray))
+			}
+
+			return nil
+		}
+		e.GET("/:id/:name/:string_array", testHandler)
+		e.ServeHTTP(rec, req)
+	})
+	t.Run("should be ok for id-named fields", func(t *testing.T) {
+		req := httptest.NewRequest(echo.GET, "/1/2/3/4", nil)
+		testHandler := func(ctx echo.Context) error {
+			u := new(testUser)
+			err := ctx.Bind(u)
+			if assert.NoError(t, err) {
+				assert.Equal(t, 1, u.ID)
+				assert.Equal(t, 2, u.NameID)
+				assert.Equal(t, 3, u.GroupID)
+				assert.Equal(t, 4, u.SameID)
+			}
+
+			return nil
+		}
+		e.GET("/:userid/:nameid/:groupid/:sameid", testHandler)
 		e.ServeHTTP(rec, req)
 	})
 	t.Run("should fail", func(t *testing.T) {
