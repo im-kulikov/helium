@@ -5,11 +5,12 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"os"
 	"testing"
 
-	"github.com/bouk/monkey"
+	"bou.ke/monkey"
 	"github.com/im-kulikov/helium/grace"
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
@@ -29,7 +30,7 @@ func (h heliumErrApp) Run(ctx context.Context) error { return errors.New("test")
 func TestHelium(t *testing.T) {
 	Convey("Helium test suite", t, func() {
 		Convey("create new helium without errors", func() {
-			h, err := New(&settings.App{}, module.Module{
+			h, err := New(&Settings{}, module.Module{
 				{Constructor: func() App { return heliumApp{} }},
 			}.Append(grace.Module, settings.Module, logger.Module))
 
@@ -39,8 +40,33 @@ func TestHelium(t *testing.T) {
 			So(h.Run(), ShouldBeNil)
 		})
 
+		Convey("create new helium and setup ENV", func() {
+			tmpFile, err := ioutil.TempFile("", "example")
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			defer os.Remove(tmpFile.Name()) // clean up
+
+			os.Setenv("HELIUM_CONFIG", tmpFile.Name())
+			os.Setenv("HELIUM_CONFIG_TYPE", "toml")
+
+			h, err := New(&Settings{}, module.Module{
+				{Constructor: func(cfg *settings.Core) App {
+					So(cfg.File, ShouldEqual, tmpFile.Name())
+					So(cfg.Type, ShouldEqual, "toml")
+					return heliumApp{}
+				}},
+			}.Append(grace.Module, settings.Module, logger.Module))
+
+			So(h, ShouldNotBeNil)
+			So(err, ShouldBeNil)
+
+			So(h.Run(), ShouldBeNil)
+		})
+
 		Convey("create new helium should fail on new", func() {
-			h, err := New(&settings.App{}, module.Module{
+			h, err := New(&Settings{}, module.Module{
 				{Constructor: func() error { return nil }},
 			})
 
@@ -49,7 +75,7 @@ func TestHelium(t *testing.T) {
 		})
 
 		Convey("create new helium should fail on start", func() {
-			h, err := New(&settings.App{}, module.Module{
+			h, err := New(&Settings{}, module.Module{
 				{Constructor: func() App { return heliumErrApp{} }},
 			}.Append(grace.Module, settings.Module, logger.Module))
 
@@ -66,7 +92,7 @@ func TestHelium(t *testing.T) {
 			defer monkey.Unpatch(os.Exit)
 
 			Convey("should panic", func() {
-				monkey.Patch(logger.NewLogger, func(*logger.Config, *settings.App) (*zap.Logger, error) {
+				monkey.Patch(logger.NewLogger, func(*logger.Config, *settings.Core) (*zap.Logger, error) {
 					return nil, errors.New("test")
 				})
 				defer monkey.Unpatch(logger.NewLogger)

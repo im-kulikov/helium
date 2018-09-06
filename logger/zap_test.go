@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/bouk/monkey"
+	"bou.ke/monkey"
 	"github.com/im-kulikov/helium/settings"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/spf13/viper"
@@ -73,7 +73,7 @@ func TestZapLogger(t *testing.T) {
 		Convey("check logger", func() {
 			Convey("all ok", func() {
 				cfg := NewLoggerConfig(v)
-				log, err := NewLogger(cfg, &settings.App{})
+				log, err := NewLogger(cfg, &settings.Core{})
 				So(err, ShouldBeNil)
 				So(log, ShouldNotBeNil)
 			})
@@ -81,7 +81,7 @@ func TestZapLogger(t *testing.T) {
 			Convey("should fail on level", func() {
 				v.SetDefault("log.level", "bad")
 				cfg := NewLoggerConfig(v)
-				log, err := NewLogger(cfg, &settings.App{})
+				log, err := NewLogger(cfg, &settings.Core{})
 				So(err, ShouldBeError)
 				So(log, ShouldBeNil)
 			})
@@ -95,7 +95,7 @@ func TestZapLogger(t *testing.T) {
 
 				v.SetDefault("log.level", "info")
 				cfg := NewLoggerConfig(v)
-				log, err := NewLogger(cfg, &settings.App{})
+				log, err := NewLogger(cfg, &settings.Core{})
 				So(err, ShouldBeError)
 				So(log, ShouldBeNil)
 			})
@@ -103,7 +103,7 @@ func TestZapLogger(t *testing.T) {
 			Convey("check sugared", func() {
 				v.SetDefault("log.level", "info")
 				cfg := NewLoggerConfig(v)
-				log, err := NewLogger(cfg, &settings.App{})
+				log, err := NewLogger(cfg, &settings.Core{})
 				So(err, ShouldBeNil)
 				So(log, ShouldNotBeNil)
 				sug := NewSugaredLogger(log)

@@ -11,8 +11,8 @@ import (
 )
 
 func TestInit(t *testing.T) {
-	Convey("App settings test suite", t, func() {
-		cfg := &App{}
+	Convey("Core settings test suite", t, func() {
+		cfg := &Core{}
 
 		Convey("should be ok without file", func() {
 			v, err := New(cfg)

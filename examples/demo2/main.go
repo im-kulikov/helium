@@ -6,7 +6,6 @@ import (
 	"github.com/im-kulikov/helium"
 	"github.com/im-kulikov/helium/examples/demo2/app"
 	"github.com/im-kulikov/helium/module"
-	"github.com/im-kulikov/helium/settings"
 	"github.com/urfave/cli"
 )
 
@@ -19,8 +18,8 @@ const (
 
 func run(mod module.Module) cli.ActionFunc {
 	return func(*cli.Context) error {
-		h, err := helium.New(&settings.App{
-			File:         config,
+		h, err := helium.New(&helium.Settings{
+			Prefix:       name,
 			Name:         name,
 			BuildTime:    version,
 			BuildVersion: buildTime,

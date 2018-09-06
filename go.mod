@@ -1,10 +1,9 @@
 module github.com/im-kulikov/helium
 
 require (
-	bou.ke/monkey v1.0.1 // indirect
+	bou.ke/monkey v1.0.1
 	github.com/BurntSushi/toml v0.3.0 // indirect
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
-	github.com/bouk/monkey v1.0.1
 	github.com/bsm/redis-lock v8.0.0+incompatible // indirect
 	github.com/chapsuk/mserv v0.3.2
 	github.com/chapsuk/wait v0.2.1 // indirect

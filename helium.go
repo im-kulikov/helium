@@ -3,6 +3,7 @@ package helium
 import (
 	"context"
 	stdlog "log"
+	"os"
 
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
@@ -12,7 +13,7 @@ import (
 )
 
 type (
-	// App implementation for helium
+	// Core implementation for helium
 	App interface {
 		Run(ctx context.Context) error
 	}
@@ -21,16 +22,46 @@ type (
 	Helium struct {
 		di *dig.Container
 	}
+
+	Settings struct {
+		File         string
+		Type         string
+		Name         string
+		Prefix       string
+		BuildTime    string
+		BuildVersion string
+	}
 )
 
 // New helium instance
-func New(cfg *settings.App, mod module.Module) (*Helium, error) {
+func New(cfg *Settings, mod module.Module) (*Helium, error) {
 	h := &Helium{
 		di: dig.New(),
 	}
 
 	if cfg != nil {
-		mod = append(mod, cfg.Provider())
+		if cfg.Prefix == "" {
+			cfg.Prefix = cfg.Name
+		}
+
+		if tmp := os.Getenv("HELIUM_CONFIG"); tmp != "" {
+			cfg.File = tmp
+		}
+
+		if tmp := os.Getenv("HELIUM_CONFIG_TYPE"); tmp != "" {
+			cfg.Type = tmp
+		}
+
+		core := settings.Core{
+			File:         cfg.File,
+			Type:         cfg.Type,
+			Name:         cfg.Name,
+			Prefix:       cfg.Prefix,
+			BuildTime:    cfg.BuildTime,
+			BuildVersion: cfg.BuildVersion,
+		}
+
+		mod = append(mod, core.Provider())
 	}
 
 	if err := module.Provide(h.di, mod); err != nil {
@@ -55,7 +86,7 @@ func Catch(err error) {
 
 	v := viper.New()
 	log, logErr := logger.
-		NewLogger(logger.NewLoggerConfig(v), &settings.App{
+		NewLogger(logger.NewLoggerConfig(v), &settings.Core{
 			Name:         "",
 			BuildVersion: "",
 		})

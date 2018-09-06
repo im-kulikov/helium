@@ -6,11 +6,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type providerType = func() *App
+type providerType = func() *Core
 
 func TestApp(t *testing.T) {
 	Convey("Settings test suite", t, func() {
-		cfg := &App{}
+		cfg := &Core{}
 
 		Convey("check provider", func() {
 			provider := cfg.Provider()

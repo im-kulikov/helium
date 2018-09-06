@@ -55,7 +55,7 @@ func NewSugaredLogger(log *zap.Logger) *zap.SugaredLogger {
 }
 
 // NewLogger init logger
-func NewLogger(lcfg *Config, app *settings.App) (*zap.Logger, error) {
+func NewLogger(lcfg *Config, app *settings.Core) (*zap.Logger, error) {
 	cfg := zap.NewProductionConfig()
 	cfg.OutputPaths = []string{"stdout"}
 	cfg.ErrorOutputPaths = []string{"stdout"}
