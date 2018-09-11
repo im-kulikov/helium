@@ -10,6 +10,7 @@ import (
 	"github.com/im-kulikov/helium/settings"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
+	"go.uber.org/zap"
 )
 
 type (
@@ -71,9 +72,14 @@ func New(cfg *Settings, mod module.Module) (*Helium, error) {
 	return h, nil
 }
 
+// Invoke dependencies from DI container
+func (h Helium) Invoke(fn interface{}, args ...dig.InvokeOption) error {
+	return h.di.Invoke(fn, args...)
+}
+
 // Run trying invoke app instance from DI container and start app with Run call
-func (p Helium) Run() error {
-	return p.di.Invoke(func(ctx context.Context, app App) error {
+func (h Helium) Run() error {
+	return h.di.Invoke(func(ctx context.Context, app App) error {
 		return app.Run(ctx)
 	})
 }
@@ -93,9 +99,7 @@ func Catch(err error) {
 	if logErr != nil {
 		stdlog.Fatal(err)
 	} else {
-		log.
-			Sugar().
-			Fatalw("Can't run app",
-				"error", err)
+		log.Fatal("Can't run app",
+			zap.Error(err))
 	}
 }

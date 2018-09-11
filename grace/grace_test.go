@@ -16,7 +16,7 @@ var _ = Convey
 func TestGrace(t *testing.T) {
 	Convey("check grace context", t, func() {
 		var (
-			log = zap.S()
+			log = zap.L()
 			ctx = NewGracefulContext(log)
 		)
 
@@ -32,7 +32,7 @@ func TestGrace(t *testing.T) {
 				case <-ctx.Done():
 					So(true, ShouldBeTrue)
 				case <-time.Tick(time.Second):
-					So(errors.New("signal not catched"), ShouldBeNil)
+					So(errors.New("no signal"), ShouldBeNil)
 				}
 			})
 		}

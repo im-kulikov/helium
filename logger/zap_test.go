@@ -24,8 +24,8 @@ func TestZapLogger(t *testing.T) {
 			})
 
 			Convey("setup config", func() {
-				v.SetDefault("log.level", "info")
-				v.SetDefault("log.format", "console")
+				v.SetDefault("logger.level", "info")
+				v.SetDefault("logger.format", "console")
 				cfg := NewLoggerConfig(v)
 				So(cfg.Level, ShouldEqual, "info")
 				So(cfg.Format, ShouldEqual, "console")
@@ -45,8 +45,8 @@ func TestZapLogger(t *testing.T) {
 				formats := []string{"bad", "console", "json"}
 
 				for _, item := range levels {
-					v.SetDefault("log.level", item)
-					v.SetDefault("log.format", "bad")
+					v.SetDefault("logger.level", item)
+					v.SetDefault("logger.format", "bad")
 					cfg := NewLoggerConfig(v)
 					if item == "bad" {
 						item = "info"
@@ -57,8 +57,8 @@ func TestZapLogger(t *testing.T) {
 				}
 
 				for _, item := range formats {
-					v.SetDefault("log.level", "bad")
-					v.SetDefault("log.format", item)
+					v.SetDefault("logger.level", "bad")
+					v.SetDefault("logger.format", item)
 					cfg := NewLoggerConfig(v)
 					if item == "bad" {
 						item = "json"
@@ -79,7 +79,7 @@ func TestZapLogger(t *testing.T) {
 			})
 
 			Convey("should fail on level", func() {
-				v.SetDefault("log.level", "bad")
+				v.SetDefault("logger.level", "bad")
 				cfg := NewLoggerConfig(v)
 				log, err := NewLogger(cfg, &settings.Core{})
 				So(err, ShouldBeError)
@@ -93,7 +93,7 @@ func TestZapLogger(t *testing.T) {
 
 				defer monkey.Unpatch(zap.Open)
 
-				v.SetDefault("log.level", "info")
+				v.SetDefault("logger.level", "info")
 				cfg := NewLoggerConfig(v)
 				log, err := NewLogger(cfg, &settings.Core{})
 				So(err, ShouldBeError)
@@ -101,7 +101,7 @@ func TestZapLogger(t *testing.T) {
 			})
 
 			Convey("check sugared", func() {
-				v.SetDefault("log.level", "info")
+				v.SetDefault("logger.level", "info")
 				cfg := NewLoggerConfig(v)
 				log, err := NewLogger(cfg, &settings.Core{})
 				So(err, ShouldBeNil)

@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/go-pg/pg"
-	"github.com/go-pg/pg/types"
 	"github.com/im-kulikov/helium/module"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -32,10 +31,6 @@ var (
 		{Constructor: NewConnection},
 	}
 
-	// InSlice alias
-	InSlice = types.InSlice
-	// ErrNoRows alias
-	ErrNoRows = pg.ErrNoRows
 	// ErrEmptyConfig when given empty options
 	ErrEmptyConfig = errors.New("database empty config")
 	// ErrEmptyLogger when logger not initialized

@@ -10,33 +10,6 @@ import (
 	"github.com/spf13/viper"
 )
 
-var (
-	_ = Name
-	_ = Secure
-	_ = RootCAs
-	_ = NoReconnect
-	_ = DontRandomize
-	_ = ReconnectWait
-	_ = MaxReconnects
-	_ = ReconnectBufSize
-	_ = Timeout
-	_ = DisconnectHandler
-	_ = ReconnectHandler
-	_ = ClosedHandler
-	_ = DiscoveredServersHandler
-	_ = ErrorHandler
-	_ = UserInfo
-	_ = Token
-	_ = SetCustomDialer
-	_ = UseOldRequestStyle
-
-	_ = DISCONNECTED
-	_ = CONNECTED
-	_ = CLOSED
-	_ = RECONNECTING
-	_ = CONNECTING
-)
-
 func TestNewDefaultConfig(t *testing.T) {
 	Convey("Check nats module", t, func() {
 		v := viper.New()

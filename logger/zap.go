@@ -16,8 +16,8 @@ type Config struct {
 // NewLoggerConfig returns logger config
 func NewLoggerConfig(v *viper.Viper) *Config {
 	return &Config{
-		Level:  v.GetString("log.level"),
-		Format: v.GetString("log.format"),
+		Level:  v.GetString("logger.level"),
+		Format: v.GetString("logger.format"),
 	}
 }
 

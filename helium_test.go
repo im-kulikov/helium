@@ -85,6 +85,26 @@ func TestHelium(t *testing.T) {
 			So(h.Run(), ShouldBeError)
 		})
 
+		Convey("invoke dependencies from helium container", func() {
+			Convey("should be ok", func() {
+				h, err := New(&Settings{}, grace.Module.Append(settings.Module, logger.Module))
+
+				So(h, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+
+				So(h.Invoke(func() {}), ShouldBeNil)
+			})
+
+			Convey("should fail", func() {
+				h, err := New(&Settings{}, grace.Module.Append(settings.Module, logger.Module))
+
+				So(h, ShouldNotBeNil)
+				So(err, ShouldBeNil)
+
+				So(h.Invoke(func(string) {}), ShouldBeError)
+			})
+		})
+
 		Convey("check catch", func() {
 			var exitCode int
 			monkey.Patch(os.Exit, func(code int) { exitCode = code })

@@ -22,13 +22,13 @@ var (
 		{Constructor: NewConnection},
 	}
 	// ErrEmptyConfig when given empty options
-	ErrEmptyConfig = errors.New("redis empty config")
+	ErrEmptyConfig = errors.New("missing redis config key")
 )
 
 // NewDefaultConfig for connection
 func NewDefaultConfig(v *viper.Viper) (*Config, error) {
 	if !v.IsSet("redis.address") {
-		return nil, errors.New("missing redis config key")
+		return nil, ErrEmptyConfig
 	}
 
 	return &Config{
