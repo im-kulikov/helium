@@ -14,7 +14,7 @@ import (
 )
 
 type (
-	// Core implementation for helium
+	// App implementation for helium
 	App interface {
 		Run(ctx context.Context) error
 	}

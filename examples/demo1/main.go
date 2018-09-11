@@ -18,7 +18,7 @@ var mod = module.New(newApp).
 		logger.Module,
 		grace.Module)
 
-// Core struct
+// App struct
 type App struct {
 	v *viper.Viper
 }
