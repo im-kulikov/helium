@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/im-kulikov/helium/module"
 	"github.com/labstack/echo"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
@@ -35,6 +36,12 @@ type (
 		FormatResponse(ctx echo.Context) error
 	}
 )
+
+var EngineModule = module.Module{
+	{Constructor: NewValidator},
+	{Constructor: NewBinder},
+	{Constructor: NewEngine},
+}
 
 func captureError(log *zap.SugaredLogger) echo.HTTPErrorHandler {
 	return func(err error, ctx echo.Context) {
@@ -87,7 +94,6 @@ func captureError(log *zap.SugaredLogger) echo.HTTPErrorHandler {
 func NewEngine(params EngineParams) *echo.Echo {
 	e := echo.New()
 
-	e.Debug = false
 	e.HidePort = true
 	e.HideBanner = true
 

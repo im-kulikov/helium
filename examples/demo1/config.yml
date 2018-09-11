@@ -19,6 +19,6 @@ redis:
 #  idle_timeout: 0
 #  idle_check_frequency: 0
 
-log:
+logger:
   level: debug
   format: console

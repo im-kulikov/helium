@@ -5,8 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bouk/monkey"
-	_ "github.com/bouk/monkey"
+	"bou.ke/monkey"
 	"github.com/labstack/gommon/log"
 	. "github.com/smartystreets/goconvey/convey"
 )

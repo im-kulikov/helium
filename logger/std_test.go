@@ -4,7 +4,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bouk/monkey"
+	"bou.ke/monkey"
 	. "github.com/smartystreets/goconvey/convey"
 	"go.uber.org/zap"
 )

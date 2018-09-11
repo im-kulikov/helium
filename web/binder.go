@@ -133,8 +133,7 @@ func (b *binder) bindData(ptr interface{}, data map[string][]string, tag string)
 			inputFieldName = typeField.Name
 			// If tag is nil, we inspect if the field is a struct.
 			if _, ok := bindUnmarshaler(structField); !ok && structFieldKind == reflect.Struct {
-				err := b.bindData(structField.Addr().Interface(), data, tag)
-				if err != nil {
+				if err := b.bindData(structField.Addr().Interface(), data, tag); err != nil {
 					return err
 				}
 				continue

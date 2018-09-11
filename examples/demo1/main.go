@@ -35,9 +35,8 @@ func (a App) Run(ctx context.Context) error {
 }
 
 func main() {
-	h, err := helium.New(&settings.App{
-		File:         "config.yml",
-		Type:         "yml",
+	h, err := helium.New(&helium.Settings{
+		Prefix:       "demo",
 		Name:         "demo",
 		BuildTime:    "now",
 		BuildVersion: "dev",

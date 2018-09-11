@@ -18,6 +18,7 @@ var Module = module.Module{}.
 		settings.Module,   // settings
 		logger.Module,     // logger
 		web.ServersModule, // web-servers
+		web.EngineModule,  // web-engine
 		orm.Module,        // pg-connection
 		redis.Module,      // redis-connection
 		workers.Module)    // workers
