@@ -26,32 +26,15 @@ jobs:
     - checkout
     - restore_cache:
         keys:
-        - gomodules-{{ .Branch }}-{{ checksum "go.sum" }}
-        - gomodules-{{ .Branch }}-{{ checksum "go.mod" }}
-        - gomodules-{{ .Branch }}
-        - gomodules-im-kulikov-helium
-        paths:
-        - /go/pkg/mod
+        - go-mod-v1-{{ checksum "go.sum" }}
     - run:
         name: download-libraries
         command: |
           go mod tidy
           go mod download
     - save_cache:
-        key: gomodules-{{ .Branch }}-{{ checksum "go.sum" }}
+        key: go-mod-v1-{{ checksum "go.sum" }}
         paths:
-        - /go/pkg/mod
-    - save_cache:
-        key: gomodules-{{ .Branch }}-{{ checksum "go.mod" }}
-        paths:
-        - /go/pkg/mod
-    - save_cache:
-        key: gomodules-{{ .Branch }}
-        paths:
-        - /go/pkg/mod
-    - save_cache:
-        key: gomodules-im-kulikov-helium
-        paths:
-        - /go/pkg/mod
+        - "/go/pkg/mod"
     - run: go test -v -cover -coverprofile=helium.coverprofile ./...
     - run: bash -c "bash <(curl -s https://codecov.io/bash) -f helium.coverprofile -t $(CODECOV_TOKEN)"
