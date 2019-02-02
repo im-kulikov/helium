@@ -24,6 +24,7 @@ type (
 		di *dig.Container
 	}
 
+	// Settings struct
 	Settings struct {
 		File         string
 		Type         string
