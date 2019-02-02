@@ -3,7 +3,9 @@ module github.com/im-kulikov/helium
 require (
 	bou.ke/monkey v1.0.1
 	github.com/BurntSushi/toml v0.3.0 // indirect
+	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 // indirect
+	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/bsm/redis-lock v8.0.0+incompatible // indirect
 	github.com/chapsuk/mserv v0.3.2
 	github.com/chapsuk/wait v0.2.1 // indirect
@@ -13,16 +15,25 @@ require (
 	github.com/go-playground/locales v0.12.1 // indirect
 	github.com/go-playground/universal-translator v0.16.0 // indirect
 	github.com/go-redis/redis v6.14.1+incompatible
+	github.com/go-sql-driver/mysql v1.4.1 // indirect
+	github.com/gogo/protobuf v1.2.0 // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20180825215210-0210a2f0f73c // indirect
+	github.com/hashicorp/go-immutable-radix v1.0.0 // indirect
+	github.com/hashicorp/go-msgpack v0.5.3 // indirect
+	github.com/hashicorp/raft v1.0.0 // indirect
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a // indirect
 	github.com/jtolds/gls v4.2.1+incompatible // indirect
 	github.com/labstack/echo v3.3.6+incompatible
 	github.com/labstack/gommon v0.2.7
+	github.com/lib/pq v1.0.0 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
-	github.com/nats-io/gnatsd v1.3.0
+	github.com/nats-io/gnatsd v1.3.0 // indirect
 	github.com/nats-io/go-nats v1.6.0
+	github.com/nats-io/go-nats-streaming v0.4.0
+	github.com/nats-io/nats-streaming-server v0.11.2
 	github.com/nats-io/nuid v1.0.0 // indirect
 	github.com/onsi/gomega v1.4.2 // indirect
+	github.com/pascaldekloe/goe v0.0.0-20180627143212-57f6aae5913c // indirect
 	github.com/pkg/errors v0.8.0
 	github.com/prometheus/client_golang v0.8.0
 	github.com/prometheus/client_model v0.0.0-20180712105110-5c3871d89910 // indirect
