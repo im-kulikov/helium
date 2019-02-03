@@ -3,6 +3,7 @@ package orm
 import (
 	"testing"
 
+	"github.com/go-pg/pg"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -75,6 +76,34 @@ func TestNewDefaultConfig(t *testing.T) {
 			cli, err := NewConnection(c, l)
 			So(err, ShouldBeNil)
 			So(cli, ShouldNotBeNil)
+
+			_, err = cli.ExecOne("SELECT 1")
+			So(err, ShouldBeNil)
+
+			err = cli.Close()
+			So(err, ShouldBeNil)
+		})
+
+		Convey("should connect with before/after hooks", func() {
+			v.SetDefault("postgres.debug", true)
+			v.SetDefault("postgres.username", "postgres")
+			v.SetDefault("postgres.password", "postgres")
+			v.SetDefault("postgres.database", "postgres")
+
+			c, err := NewDefaultConfig(v)
+			So(err, ShouldBeNil)
+			So(c.User, ShouldEqual, "postgres")
+			So(c.Password, ShouldEqual, "postgres")
+			So(c.Database, ShouldEqual, "postgres")
+
+			cli, err := NewConnection(c, l)
+			So(err, ShouldBeNil)
+			So(cli, ShouldNotBeNil)
+
+			cli.AddQueryHook(&Hook{
+				Before: func(event *pg.QueryEvent) {},
+				After:  nil,
+			})
 
 			_, err = cli.ExecOne("SELECT 1")
 			So(err, ShouldBeNil)
