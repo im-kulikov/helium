@@ -33,6 +33,7 @@ func TestLogger(t *testing.T) {
 			l.SetLevel(log.ERROR)  // do nothing
 			l.SetOutput(os.Stdout) // do nothing
 			l.SetPrefix("prefix")  // do nothing
+			l.SetHeader("header")  // do nothing
 
 			So(l.Prefix(), ShouldEqual, "")
 			So(l.Level(), ShouldEqual, log.DEBUG)

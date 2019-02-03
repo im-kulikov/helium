@@ -7,7 +7,7 @@ import (
 	"net/http"
 
 	"github.com/im-kulikov/helium/module"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
 	"go.uber.org/zap"

@@ -1,7 +1,6 @@
 package orm
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/go-pg/pg"
@@ -22,7 +21,34 @@ type (
 		PoolSize int
 		Logger   *zap.SugaredLogger
 	}
+
+	// Hook is a simple implementation of pg.QueryHook
+	Hook struct {
+		StartAt time.Time
+		Before  func(*pg.QueryEvent)
+		After   func(*pg.QueryEvent)
+	}
 )
+
+// BeforeQuery callback
+func (h *Hook) BeforeQuery(e *pg.QueryEvent) {
+	h.StartAt = time.Now()
+
+	if h.Before == nil {
+		return
+	}
+
+	h.Before(e)
+}
+
+// AfterQuery callback
+func (h Hook) AfterQuery(e *pg.QueryEvent) {
+	if h.After == nil {
+		return
+	}
+
+	h.After(e)
+}
 
 var (
 	// Module is default connection to PostgreSQL
@@ -54,7 +80,7 @@ func NewDefaultConfig(v *viper.Viper) (*Config, error) {
 }
 
 // NewConnection returns database connection
-func NewConnection(opts *Config, l *zap.SugaredLogger) (db *pg.DB, err error) {
+func NewConnection(opts *Config, l *zap.Logger) (db *pg.DB, err error) {
 	if opts == nil {
 		err = ErrEmptyConfig
 		return
@@ -65,12 +91,12 @@ func NewConnection(opts *Config, l *zap.SugaredLogger) (db *pg.DB, err error) {
 		return
 	}
 
-	l.Debugw("Connect to PostgreSQL",
-		"address", opts.Addr,
-		"user", opts.User,
-		"password", opts.Password,
-		"database", opts.Database,
-		"pool_size", opts.PoolSize)
+	l.Debug("Connect to PostgreSQL",
+		zap.String("address", opts.Addr),
+		zap.String("user", opts.User),
+		zap.String("password", opts.Password),
+		zap.String("database", opts.Database),
+		zap.Int("pool_size", opts.PoolSize))
 
 	db = pg.Connect(&pg.Options{
 		Addr:     opts.Addr,
@@ -85,14 +111,17 @@ func NewConnection(opts *Config, l *zap.SugaredLogger) (db *pg.DB, err error) {
 	}
 
 	if opts.Debug {
-		db.OnQueryProcessed(func(event *pg.QueryProcessedEvent) {
-			query, qErr := event.FormattedQuery()
-			l.Debugw(
-				fmt.Sprintf("db query %s: \n\t%s", event.Func, query),
-				"query_time", time.Since(event.StartTime),
-				"error", qErr,
-			)
-		})
+		h := new(Hook)
+		h.After = func(e *pg.QueryEvent) {
+			query, qErr := e.FormattedQuery()
+			l.Debug("pg query",
+				zap.String("query", query),
+				zap.Duration("query_time", time.Since(h.StartAt)),
+				zap.Int("attempt", e.Attempt),
+				zap.Any("params", e.Params),
+				zap.Error(qErr))
+		}
+		db.AddQueryHook(h)
 	}
 
 	return

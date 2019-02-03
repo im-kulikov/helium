@@ -11,7 +11,7 @@ import (
 	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/settings"
 	"github.com/im-kulikov/helium/web"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 )

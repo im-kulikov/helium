@@ -3,7 +3,7 @@ package web
 import (
 	"io"
 
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"go.uber.org/zap"
 )
@@ -39,6 +39,9 @@ func (e *echoLogger) Output() io.Writer {
 
 // SetOutput do nothing
 func (e *echoLogger) SetOutput(w io.Writer) {}
+
+// SetHeader do nothing
+func (e *echoLogger) SetHeader(h string) {}
 
 // Prefix do nothing
 func (e *echoLogger) Prefix() string {
