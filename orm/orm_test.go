@@ -11,7 +11,7 @@ import (
 func TestNewDefaultConfig(t *testing.T) {
 	Convey("Check orm module", t, func() {
 		v := viper.New()
-		l := zap.S()
+		l := zap.L()
 
 		Convey("must fail on empty", func() {
 			c, err := NewDefaultConfig(v)
@@ -55,7 +55,7 @@ func TestNewDefaultConfig(t *testing.T) {
 			c, err := NewDefaultConfig(v)
 			So(err, ShouldBeNil)
 
-			cli, err := NewConnection(c, zap.S())
+			cli, err := NewConnection(c, l)
 			So(err, ShouldBeError)
 			So(cli, ShouldBeNil)
 		})
@@ -72,7 +72,7 @@ func TestNewDefaultConfig(t *testing.T) {
 			So(c.Password, ShouldEqual, "postgres")
 			So(c.Database, ShouldEqual, "postgres")
 
-			cli, err := NewConnection(c, zap.S())
+			cli, err := NewConnection(c, l)
 			So(err, ShouldBeNil)
 			So(cli, ShouldNotBeNil)
 

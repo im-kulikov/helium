@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/im-kulikov/helium/module"
-	"github.com/labstack/echo"
+	"github.com/labstack/echo/v4"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
