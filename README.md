@@ -10,6 +10,8 @@
 # Documentation
 
 * [About](#about)
+* [Why Helium](#why-helium)
+* [Credits](#credits)
 
 ## About
 
@@ -27,5 +29,25 @@ It contains the following components for rapid prototyping of your projects:
 - Web - [see more](#web-module)
 - Workers - are tools to run goroutine and do some work on scheduling with a safe stop of their work. Based on [chapsuk/worker](https://github.com/chapsuk/worker)
 
+## Why Helium
+
+When building a modern application or prototype proof of concept, the last thing you want to worry about is boilerplate code or pass dependencies.
+All this is a routine that each of us faces.
+Helium lets you get rid of this routine and focus on your code.
+Helium provides to you Convention over configuration.
+
+The modular structure of helium consists of the following concepts
+- *Module* is a set of providers
+- *Provider* is what you put in the DI container. It teaches the container how to build values of one or more types and expresses their dependencies. It consists of two components of the **constructor** and **options**.
+- *Constructor* is a function that accepts zero or more parameters and returns one or more results. The function may optionally return an error to indicate that it failed to build the value. This function will be treated as the constructor for all the types it returns. This function will be called AT MOST ONCE when a type produced by it, or a type that consumes this function's output, is requested via Invoke. If the same types are requested multiple times, the previously produced value will be reused. In addition to accepting constructors that accept dependencies as separate arguments and produce results as separate return values, Provide also accepts constructors that specify dependencies as dig.In structs and/or specify results as dig.Out structs.
+- *Options* modifies the default behavior of dig.Provide
+
 ## Web Module
 
+
+
+## Credits
+
+- [Evgeniy Kulikov](https://github.com/im-kulikov) - Author
+- [Alexander Tischenko](https://github.com/archaron) - Consultant
+- [Contributors](https://github.com/im-kulikov/helium/graphs/contributors)
