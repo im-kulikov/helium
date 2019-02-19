@@ -19,7 +19,11 @@
     * [Web](#web-module)
 * [Examples of code](./examples)
 * [Project Examples](#project-examples)
+* [Example](#example)
+* [Supported Go versions](#supported-go-versions)
+* [Contribute](#contribute)
 * [Credits](#credits)
+* [License](#license)
 
 ## Why Helium
 
@@ -323,8 +327,110 @@ workers:
 - [Potter](https://github.com/im-kulikov/potter) is simple fixture based API service
 - [Image processing service](https://github.com/archaron/secimage)
 
+## Example
+
+**config.yml**
+```yaml
+api:
+  address: :8080
+  debug: true
+  shutdown_timeout: 10s
+
+logger:
+  level: debug
+  format: console
+```
+
+**main.go**
+```go
+package main
+
+import (
+	"context"
+	"net/http"
+
+	"github.com/chapsuk/mserv"
+	"github.com/im-kulikov/helium"
+	"github.com/im-kulikov/helium/grace"
+	"github.com/im-kulikov/helium/logger"
+	"github.com/im-kulikov/helium/module"
+	"github.com/im-kulikov/helium/settings"
+	"github.com/im-kulikov/helium/web"
+	"github.com/labstack/echo/v4"
+	"go.uber.org/dig"
+	"go.uber.org/zap"
+)
+
+func main() {
+	h, err := helium.New(&helium.Settings{
+		Name:         "demo3",
+		Prefix:       "DM3",
+		File:         "config.yml",
+		BuildVersion: "dev",
+	}, module.Module{
+		{Constructor: handler},
+	}.Append(
+		grace.Module,
+		settings.Module,
+		web.ServersModule,
+		web.EngineModule,
+		logger.Module,
+	))
+	err = dig.RootCause(err)
+	helium.Catch(err)
+	
+	err = h.Invoke(runner)
+	err = dig.RootCause(err)
+	helium.Catch(err)
+}
+
+func handler(e *echo.Echo) http.Handler {
+	e.GET("/ping", func(ctx echo.Context) error {
+		return ctx.String(http.StatusOK, "pong")
+	})
+	return e
+}
+
+func runner(ctx context.Context, s mserv.Server, l *zap.Logger) {
+	l.Info("run servers")
+	s.Start()
+
+	l.Info("application started")
+	<-ctx.Done()
+
+	l.Info("stop servers")
+	s.Stop()
+
+	l.Info("application stopped")
+}
+```
+
+## Supported Go versions
+
+Helium is available as a [Go module](https://github.com/golang/go/wiki/Modules).
+- 1.11+
+
+## Contribute
+
+**Use issues for everything**
+
+- For a small change, just send a PR.
+- For bigger changes open an issue for discussion before sending a PR.
+- PR should have:
+  - Test case
+  - Documentation
+  - Example (If it makes sense)
+- You can also contribute by:
+  - Reporting issues
+  - Suggesting new features or enhancements
+  - Improve/fix documentation
+
 ## Credits
 
 - [Evgeniy Kulikov](https://github.com/im-kulikov) - Author
 - [Alexander Tischenko](https://github.com/archaron) - Consultant
 - [Contributors](https://github.com/im-kulikov/helium/graphs/contributors)
+
+## License
+
+[MIT](LICENSE)
