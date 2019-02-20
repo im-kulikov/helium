@@ -42,7 +42,7 @@ The modular structure of helium consists of the following concepts
 
 ## About Helium and modules
 
-*Helium is a small, simple, modular constructor with some pre-built modules for your convenience.*
+*Helium is a small, simple, modular constructor with some pre-built components for your convenience.*
  
 It contains the following components for rapid prototyping of your projects:
 - Grace - [context](https://golang.org/pkg/context/) that helps you gracefully shutdown your application
