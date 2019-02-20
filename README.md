@@ -4,6 +4,7 @@
 [![CircleCI](https://circleci.com/gh/im-kulikov/helium.svg?style=svg)](https://circleci.com/gh/im-kulikov/helium)
 [![Report](https://goreportcard.com/badge/github.com/im-kulikov/helium)](https://goreportcard.com/report/github.com/im-kulikov/helium)
 [![GitHub release](https://img.shields.io/github/release/im-kulikov/helium.svg)](https://github.com/im-kulikov/helium)
+![GitHub](https://img.shields.io/github/license/im-kulikov/helium.svg?style=popout)
 
 <img src="./.github/helium.jpg" width="350" alt="logo">
 
