@@ -5,6 +5,7 @@
 [![Report](https://goreportcard.com/badge/github.com/im-kulikov/helium)](https://goreportcard.com/report/github.com/im-kulikov/helium)
 [![GitHub release](https://img.shields.io/github/release/im-kulikov/helium.svg)](https://github.com/im-kulikov/helium)
 ![GitHub](https://img.shields.io/github/license/im-kulikov/helium.svg?style=popout)
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fim-kulikov%2Fhelium.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fim-kulikov%2Fhelium?ref=badge_shield)
 
 <img src="./.github/helium.jpg" width="350" alt="logo">
 
@@ -435,3 +436,5 @@ Helium is available as a [Go module](https://github.com/golang/go/wiki/Modules).
 ## License
 
 [MIT](LICENSE)
+
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fim-kulikov%2Fhelium.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fim-kulikov%2Fhelium?ref=badge_large)
