@@ -6,8 +6,8 @@ require (
 	github.com/armon/go-metrics v0.0.0-20180917152333-f0300d1749da // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/bsm/redis-lock v8.0.0+incompatible // indirect
-	github.com/chapsuk/mserv v0.4.0
-	github.com/chapsuk/wait v0.2.1 // indirect
+	github.com/chapsuk/mserv v0.4.1
+	github.com/chapsuk/wait v0.3.1 // indirect
 	github.com/chapsuk/worker v0.4.0
 	github.com/davecgh/go-spew v1.1.1
 	github.com/go-pg/pg v7.1.7+incompatible
