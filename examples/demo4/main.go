@@ -11,7 +11,6 @@ import (
 	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/settings"
 	"github.com/im-kulikov/helium/web"
-	"github.com/labstack/echo/v4"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 )
@@ -28,7 +27,6 @@ func main() {
 		grace.Module,
 		settings.Module,
 		web.ServersModule,
-		web.EngineModule,
 		logger.Module,
 	))
 	err = dig.RootCause(err)
@@ -38,11 +36,13 @@ func main() {
 	helium.Catch(err)
 }
 
-func handler(e *echo.Echo) http.Handler {
-	e.GET("/ping", func(ctx echo.Context) error {
-		return ctx.String(http.StatusOK, "pong")
+func handler() http.Handler {
+	h := http.NewServeMux()
+	h.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK"))
 	})
-	return e
+	return h
 }
 
 func runner(s mserv.Server, l *zap.Logger, ctx context.Context) {

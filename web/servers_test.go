@@ -7,12 +7,15 @@ import (
 	"github.com/chapsuk/mserv"
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
-	"github.com/labstack/echo/v4"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 )
+
+func testHTTPHandler() http.Handler {
+	return http.NewServeMux()
+}
 
 func TestServers(t *testing.T) {
 	Convey("Servers test suite", t, func() {
@@ -61,7 +64,7 @@ func TestServers(t *testing.T) {
 
 			Convey("should be ok", func() {
 				v.SetDefault("api.address", ":8090")
-				serve := NewAPIServer(v, l, echo.New())
+				serve := NewAPIServer(v, l, testHTTPHandler())
 				So(serve.Server, ShouldNotBeNil)
 			})
 		})
@@ -78,7 +81,7 @@ func TestServers(t *testing.T) {
 				{Constructor: NewMultiServer},
 				{Constructor: func() *viper.Viper { return v }},
 				{Constructor: func() logger.StdLogger { return l }},
-				{Constructor: func() http.Handler { return echo.New() }},
+				{Constructor: func() http.Handler { return testHTTPHandler() }},
 			}
 
 			err := module.Provide(di, mod)
