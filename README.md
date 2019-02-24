@@ -49,9 +49,9 @@ It contains the following components for rapid prototyping of your projects:
 - Logger - [zap](https://go.uber.org/zap) is blazing fast, structured, leveled logging in Go
 - DI - based on [DIG](https://go.uber.org/dig). A reflection based dependency injection toolkit for Go.
 - Module - set of tools for working with the DI component
-- NATS - [nats](https://github.com/nats-io/go-nats) and [NSS](https://github.com/nats-io/nats-streaming-server), client for the cloud native messaging system
-- ORM - client module for [ORM](https://github.com/go-pg/pg) with focus on PostgreSQL features and performance
-- redis - module for type-safe [Redis](https://github.com/go-redis/redis) client for Golang  
+- [NATS](https://github.com/go-helium/nats) - [nats](https://github.com/nats-io/go-nats) and [NSS](https://github.com/nats-io/nats-streaming-server), client for the cloud native messaging system
+- [PostgreSQL](https://github.com/go-helium/postgres) - client module for [ORM](https://github.com/go-pg/pg) with focus on PostgreSQL features and performance
+- [Redis](https://github.com/go-helium/redis) - module for type-safe [Redis](https://github.com/go-redis/redis) client for Golang  
 - Settings - based on [Viper](https://github.com/spf13/viper). A complete configuration solution for Go applications including 12-Factor apps. It is designed to work within an application, and can handle all types of configuration needs and formats
 - Web - [see more](#web-module)
 - Workers - are tools to run goroutines and do arbitrary work on a schedule along with a mechanism to safely stop each one. Based on [chapsuk/worker](https://github.com/chapsuk/worker)
@@ -118,7 +118,7 @@ LOGGER_LEVEL=info
 
 ## NATS Module
 
-Module provides you with the following things:
+[Module](https://github.com/go-helium/nats) provides you with the following things:
 - [`*nats.Conn`](https://godoc.org/github.com/nats-io/go-nats#Conn) represents a bare connection to a nats-server. It can send and receive []byte payloads
 - [`stan.Conn`](https://godoc.org/github.com/nats-io/go-nats-streaming#Conn) represents a connection to the NATS Streaming subsystem. It can Publish and Subscribe to messages within the NATS Streaming cluster.
 
@@ -173,9 +173,9 @@ NATS_PASSWORD=string
 NATS_TOKEN=string
 ```
 
-## ORM Module
+## PostgreSQL Module
 
-Module provides you connection to PostgreSQL server
+[Module](https://github.com/go-helium/postgres) provides you connection to PostgreSQL server
 - `*pg.DB` is a database handle representing a pool of zero or more underlying connections. It's safe for concurrent use by multiple goroutines
 
 Configuration:
@@ -201,7 +201,7 @@ POSTGRES_POOL_SIZE=int
 
 ## Redis Module
 
-Module provides you connection to Redis server
+[Module](https://github.com/go-helium/redis) provides you connection to Redis server
 - `*redis.Client` is a Redis client representing a pool of zero or more underlying connections. It's safe for concurrent use by multiple goroutines
 
 Configuration:
@@ -260,7 +260,7 @@ Viper is a prioritized configuration registry. It maintains a set of configurati
     - [pprof](https://golang.org/pkg/net/http/pprof/) endpoint
     - [metrics](https://github.com/prometheus/client_golang) enpoint (by Prometheus)
     - **api** endpoint by passing http.Handler from DI
-- `EngineModule` boilerplate that preconfigures echo.Engine for you
+- [`echo.Module`](https://github.com/go-helium/echo) boilerplate that preconfigures echo.Engine for you
     - with custom Binder / Logger / Validator / ErrorHandler
 
 Configuration:
@@ -358,7 +358,6 @@ import (
 	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/settings"
 	"github.com/im-kulikov/helium/web"
-	"github.com/labstack/echo/v4"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 )
@@ -375,25 +374,25 @@ func main() {
 		grace.Module,
 		settings.Module,
 		web.ServersModule,
-		web.EngineModule,
 		logger.Module,
 	))
 	err = dig.RootCause(err)
 	helium.Catch(err)
-	
 	err = h.Invoke(runner)
 	err = dig.RootCause(err)
 	helium.Catch(err)
 }
 
-func handler(e *echo.Echo) http.Handler {
-	e.GET("/ping", func(ctx echo.Context) error {
-		return ctx.String(http.StatusOK, "pong")
+func handler() http.Handler {
+	h := http.NewServeMux()
+	h.HandleFunc("/ping", func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("OK"))
 	})
-	return e
+	return h
 }
 
-func runner(ctx context.Context, s mserv.Server, l *zap.Logger) {
+func runner(s mserv.Server, l *zap.Logger, ctx context.Context) {
 	l.Info("run servers")
 	s.Start()
 
