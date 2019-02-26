@@ -45,7 +45,7 @@ func handler() http.Handler {
 	return h
 }
 
-func runner(s mserv.Server, l *zap.Logger, ctx context.Context) {
+func runner(ctx context.Context, s mserv.Server, l *zap.Logger) {
 	l.Info("run servers")
 	s.Start()
 

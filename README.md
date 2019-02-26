@@ -1,7 +1,7 @@
 # Helium
 
 ![Codecov](https://img.shields.io/codecov/c/github/im-kulikov/helium.svg?style=flat-square)
-![CircleCI (all branches)](https://img.shields.io/circleci/project/github/im-kulikov/helium.svg?style=flat-square)
+[![Build Status](https://travis-ci.com/im-kulikov/helium.svg?branch=master)](https://travis-ci.com/im-kulikov/helium)
 [![Report](https://goreportcard.com/badge/github.com/im-kulikov/helium)](https://goreportcard.com/report/github.com/im-kulikov/helium)
 [![GitHub release](https://img.shields.io/github/release/im-kulikov/helium.svg)](https://github.com/im-kulikov/helium)
 ![GitHub](https://img.shields.io/github/license/im-kulikov/helium.svg?style=popout)
