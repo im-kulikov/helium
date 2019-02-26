@@ -18,58 +18,58 @@ func testHTTPHandler() http.Handler {
 }
 
 func TestServers(t *testing.T) {
-	Convey("Servers test suite", t, func() {
+	Convey("Servers test suite", t, func(c C) {
 		v := viper.New()
 		z := zap.L()
 		l := logger.NewStdLogger(z)
 		di := dig.New()
 
-		Convey("check pprof server", func() {
-			Convey("without config", func() {
+		c.Convey("check pprof server", func(c C) {
+			c.Convey("without config", func(c C) {
 				serve := NewPprofServer(v, l)
-				So(serve.Server, ShouldBeNil)
+				c.So(serve.Server, ShouldBeNil)
 			})
 
-			Convey("with config", func() {
+			c.Convey("with config", func(c C) {
 				v.SetDefault("pprof.address", ":6090")
 				serve := NewPprofServer(v, l)
-				So(serve.Server, ShouldNotBeNil)
+				c.So(serve.Server, ShouldNotBeNil)
 			})
 		})
 
-		Convey("check metrics server", func() {
-			Convey("without config", func() {
+		c.Convey("check metrics server", func(c C) {
+			c.Convey("without config", func(c C) {
 				serve := NewMetricsServer(v, l)
-				So(serve.Server, ShouldBeNil)
+				c.So(serve.Server, ShouldBeNil)
 			})
 
-			Convey("with config", func() {
+			c.Convey("with config", func(c C) {
 				v.SetDefault("metrics.address", ":8090")
 				serve := NewMetricsServer(v, l)
-				So(serve.Server, ShouldNotBeNil)
+				c.So(serve.Server, ShouldNotBeNil)
 			})
 		})
 
-		Convey("check api server", func() {
-			Convey("without config", func() {
+		c.Convey("check api server", func(c C) {
+			c.Convey("without config", func(c C) {
 				serve := NewAPIServer(v, l, nil)
-				So(serve.Server, ShouldBeNil)
+				c.So(serve.Server, ShouldBeNil)
 			})
 
-			Convey("without handler", func() {
+			c.Convey("without handler", func(c C) {
 				v.SetDefault("api.address", ":8090")
 				serve := NewAPIServer(v, l, nil)
-				So(serve.Server, ShouldBeNil)
+				c.So(serve.Server, ShouldBeNil)
 			})
 
-			Convey("should be ok", func() {
+			c.Convey("should be ok", func(c C) {
 				v.SetDefault("api.address", ":8090")
 				serve := NewAPIServer(v, l, testHTTPHandler())
-				So(serve.Server, ShouldNotBeNil)
+				c.So(serve.Server, ShouldNotBeNil)
 			})
 		})
 
-		Convey("check multi server", func() {
+		c.Convey("check multi server", func(c C) {
 			v.SetDefault("pprof.address", ":6090")
 			v.SetDefault("metrics.address", ":8090")
 			v.SetDefault("api.address", ":8090")
@@ -85,11 +85,11 @@ func TestServers(t *testing.T) {
 			}
 
 			err := module.Provide(di, mod)
-			So(err, ShouldBeNil)
+			c.So(err, ShouldBeNil)
 			err = di.Invoke(func(serve mserv.Server) {
-				So(serve, ShouldHaveSameTypeAs, &mserv.MultiServer{})
+				c.So(serve, ShouldHaveSameTypeAs, &mserv.MultiServer{})
 			})
-			So(err, ShouldBeNil)
+			c.So(err, ShouldBeNil)
 		})
 	})
 }

@@ -2,8 +2,10 @@ package helium
 
 import (
 	"context"
+	"fmt"
 	stdlog "log"
 	"os"
+	"reflect"
 
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
@@ -103,4 +105,31 @@ func Catch(err error) {
 		log.Fatal("Can't run app",
 			zap.Error(err))
 	}
+}
+
+// CatchTrace catch errors for debugging
+// use that function just for debug your application
+func CatchTrace(err error) {
+	if err == nil {
+		return
+	}
+
+	// digging into the root of the problem
+	for {
+		var (
+			v  = reflect.ValueOf(err)
+			fn reflect.Value
+		)
+
+		if v.Type().Kind() != reflect.Struct {
+			break
+		}
+
+		fn = v.FieldByName("Func")
+		err = v.FieldByName("Reason").Interface().(error)
+
+		fmt.Printf("Place: %#v\nReason: %s\n\n", fn, err)
+	}
+
+	panic(err)
 }

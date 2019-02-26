@@ -7,53 +7,51 @@ import (
 	"go.uber.org/dig"
 )
 
-var _ = Convey
-
 func TestModule(t *testing.T) {
-	Convey("Test Module and Provider", t, func() {
-		Convey("Provider", func() {
+	Convey("Test Module and Provider", t, func(c C) {
+		c.Convey("Provider", func(c C) {
 			var dic = dig.New()
 
-			Convey("should return error on empty provider", func() {
+			c.Convey("should return error on empty provider", func(c C) {
 				p := new(Provider)
 				err := Provide(dic, Module{p})
-				So(err, ShouldBeError)
+				c.So(err, ShouldBeError)
 			})
 
-			Convey("should return error if provider constructor func has to many similar returns values", func() {
+			c.Convey("should return error if provider constructor func has to many similar returns values", func(c C) {
 				mod := New(func() (int, int, error) {
 					return 0, 0, nil
 				})
 
 				err := Provide(dic, mod)
 
-				So(err, ShouldBeError)
+				c.So(err, ShouldBeError)
 			})
 
-			Convey("should return error if provider constructor func has only error field", func() {
+			c.Convey("should return error if provider constructor func has only error field", func(c C) {
 				mod := New(func() error {
 					return nil
 				})
 
 				err := Provide(dic, mod)
 
-				So(err, ShouldBeError)
+				c.So(err, ShouldBeError)
 			})
 
-			Convey("should not return errors on correct provider", func() {
+			c.Convey("should not return errors on correct provider", func(c C) {
 				mod := New(func() (int, error) {
 					return 0, nil
 				})
 
 				err := Provide(dic, mod)
-				So(err, ShouldBeNil)
+				c.So(err, ShouldBeNil)
 
 				err = dic.Invoke(func(int) {})
-				So(err, ShouldBeNil)
+				c.So(err, ShouldBeNil)
 			})
 		})
 
-		Convey("Module", func() {
+		c.Convey("Module", func(c C) {
 			var (
 				m1 = New(func() int32 { return 0 })
 				m2 = New(func() int64 { return 1 })
@@ -64,25 +62,25 @@ func TestModule(t *testing.T) {
 				dic = dig.New()
 			)
 
-			Convey("should create new module", func() {
-				So(m1, ShouldHaveLength, 1)
-				So(m2, ShouldHaveLength, 1)
-				So(m3, ShouldHaveLength, 1)
-				So(m4, ShouldHaveLength, 2)
-				So(m5, ShouldHaveLength, 3)
+			c.Convey("should create new module", func(c C) {
+				c.So(m1, ShouldHaveLength, 1)
+				c.So(m2, ShouldHaveLength, 1)
+				c.So(m3, ShouldHaveLength, 1)
+				c.So(m4, ShouldHaveLength, 2)
+				c.So(m5, ShouldHaveLength, 3)
 			})
 
-			Convey("m1 and m2 should not fail", func() {
+			c.Convey("m1 and m2 should not fail", func(c C) {
 				err := Provide(dic, m4)
-				So(err, ShouldBeNil)
+				c.So(err, ShouldBeNil)
 
 				err = dic.Invoke(func(int32, int64) {})
-				So(err, ShouldBeNil)
+				c.So(err, ShouldBeNil)
 			})
 
-			Convey("m1 .. m3 should fail", func() {
+			c.Convey("m1 .. m3 should fail", func(c C) {
 				err := Provide(dic, m5)
-				So(err, ShouldBeError)
+				c.So(err, ShouldBeError)
 			})
 		})
 	})

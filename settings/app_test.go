@@ -9,18 +9,18 @@ import (
 type providerType = func() *Core
 
 func TestApp(t *testing.T) {
-	Convey("Settings test suite", t, func() {
+	Convey("Settings test suite", t, func(c C) {
 		cfg := &Core{}
 
-		Convey("check provider", func() {
+		c.Convey("check provider", func(c C) {
 			provider := cfg.Provider()
-			So(provider, ShouldNotBeNil)
-			So(provider.Constructor, ShouldHaveSameTypeAs, providerType(nil))
+			c.So(provider, ShouldNotBeNil)
+			c.So(provider.Constructor, ShouldHaveSameTypeAs, providerType(nil))
 			appProvider := provider.Constructor.(providerType)
-			So(appProvider(), ShouldEqual, cfg)
+			c.So(appProvider(), ShouldEqual, cfg)
 		})
 
-		Convey("safe type", func() {
+		c.Convey("safe type", func(c C) {
 			cases := []string{"bad", "toml", "yml", "yaml"}
 			for _, item := range cases {
 				cfg.Type = item
@@ -29,7 +29,7 @@ func TestApp(t *testing.T) {
 					item = "yml"
 				}
 
-				So(cfg.SafeType(), ShouldEqual, item)
+				c.So(cfg.SafeType(), ShouldEqual, item)
 			}
 		})
 	})

@@ -13,25 +13,25 @@ import (
 )
 
 func TestZapLogger(t *testing.T) {
-	Convey("ZapLogger test suite", t, func() {
+	Convey("ZapLogger test suite", t, func(c C) {
 		v := viper.New()
 
-		Convey("check logger config", func() {
-			Convey("empty config", func() {
+		c.Convey("check logger config", func(c C) {
+			c.Convey("empty config", func(c C) {
 				cfg := NewLoggerConfig(v)
-				So(cfg.Level, ShouldBeZeroValue)
-				So(cfg.Format, ShouldBeZeroValue)
+				c.So(cfg.Level, ShouldBeZeroValue)
+				c.So(cfg.Format, ShouldBeZeroValue)
 			})
 
-			Convey("setup config", func() {
+			c.Convey("setup config", func(c C) {
 				v.SetDefault("logger.level", "info")
 				v.SetDefault("logger.format", "console")
 				cfg := NewLoggerConfig(v)
-				So(cfg.Level, ShouldEqual, "info")
-				So(cfg.Format, ShouldEqual, "console")
+				c.So(cfg.Level, ShouldEqual, "info")
+				c.So(cfg.Format, ShouldEqual, "console")
 			})
 
-			Convey("config safely", func() {
+			c.Convey("config safely", func(c C) {
 				levels := []string{
 					"bad",
 					"debug", "DEBUG",
@@ -52,8 +52,8 @@ func TestZapLogger(t *testing.T) {
 						item = "info"
 					}
 
-					So(cfg.SafeLevel(), ShouldEqual, item)
-					So(cfg.SafeFormat(), ShouldEqual, "json")
+					c.So(cfg.SafeLevel(), ShouldEqual, item)
+					c.So(cfg.SafeFormat(), ShouldEqual, "json")
 				}
 
 				for _, item := range formats {
@@ -64,29 +64,29 @@ func TestZapLogger(t *testing.T) {
 						item = "json"
 					}
 
-					So(cfg.SafeLevel(), ShouldEqual, "info")
-					So(cfg.SafeFormat(), ShouldEqual, item)
+					c.So(cfg.SafeLevel(), ShouldEqual, "info")
+					c.So(cfg.SafeFormat(), ShouldEqual, item)
 				}
 			})
 		})
 
-		Convey("check logger", func() {
-			Convey("all ok", func() {
+		c.Convey("check logger", func(c C) {
+			c.Convey("all ok", func(c C) {
 				cfg := NewLoggerConfig(v)
 				log, err := NewLogger(cfg, &settings.Core{})
-				So(err, ShouldBeNil)
-				So(log, ShouldNotBeNil)
+				c.So(err, ShouldBeNil)
+				c.So(log, ShouldNotBeNil)
 			})
 
-			Convey("should fail on level", func() {
+			c.Convey("should fail on level", func(c C) {
 				v.SetDefault("logger.level", "bad")
 				cfg := NewLoggerConfig(v)
 				log, err := NewLogger(cfg, &settings.Core{})
-				So(err, ShouldBeError)
-				So(log, ShouldBeNil)
+				c.So(err, ShouldBeError)
+				c.So(log, ShouldBeNil)
 			})
 
-			Convey("should fail on stdout", func() {
+			c.Convey("should fail on stdout", func(c C) {
 				monkey.Patch(zap.Open, func(paths ...string) (zapcore.WriteSyncer, func(), error) {
 					return nil, nil, errors.New("test")
 				})
@@ -96,18 +96,18 @@ func TestZapLogger(t *testing.T) {
 				v.SetDefault("logger.level", "info")
 				cfg := NewLoggerConfig(v)
 				log, err := NewLogger(cfg, &settings.Core{})
-				So(err, ShouldBeError)
-				So(log, ShouldBeNil)
+				c.So(err, ShouldBeError)
+				c.So(log, ShouldBeNil)
 			})
 
-			Convey("check sugared", func() {
+			c.Convey("check sugared", func(c C) {
 				v.SetDefault("logger.level", "info")
 				cfg := NewLoggerConfig(v)
 				log, err := NewLogger(cfg, &settings.Core{})
-				So(err, ShouldBeNil)
-				So(log, ShouldNotBeNil)
+				c.So(err, ShouldBeNil)
+				c.So(log, ShouldNotBeNil)
 				sug := NewSugaredLogger(log)
-				So(sug, ShouldNotBeNil)
+				c.So(sug, ShouldNotBeNil)
 			})
 		})
 	})

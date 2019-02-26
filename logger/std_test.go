@@ -10,33 +10,33 @@ import (
 )
 
 func TestStdLogger(t *testing.T) {
-	Convey("StdLogger test suite", t, func() {
+	Convey("StdLogger test suite", t, func(c C) {
 		std := NewStdLogger(zap.L())
 
-		Convey("Not fatal calls should not panic", func() {
-			Convey("print", func() {
-				So(func() { std.Print("panic no") }, ShouldNotPanic)
+		c.Convey("Not fatal calls should not panic", func(c C) {
+			c.Convey("print", func(c C) {
+				c.So(func() { std.Print("panic no") }, ShouldNotPanic)
 			})
 
-			Convey("printf", func() {
-				So(func() { std.Printf("panic %s", "no") }, ShouldNotPanic)
+			c.Convey("printf", func(c C) {
+				c.So(func() { std.Printf("panic %s", "no") }, ShouldNotPanic)
 			})
 
 		})
 
-		Convey("Fatal(f) should call os.Exit with 1 code", func() {
+		c.Convey("Fatal(f) should call os.Exit with 1 code", func(c C) {
 			var exitCode int
 			monkey.Patch(os.Exit, func(code int) { exitCode = code })
 			defer monkey.Unpatch(os.Exit)
 
-			Convey("Fatal", func() {
-				So(func() { std.Fatal("panic no") }, ShouldNotPanic)
-				So(exitCode, ShouldEqual, 1)
+			c.Convey("Fatal", func(c C) {
+				c.So(func() { std.Fatal("panic no") }, ShouldNotPanic)
+				c.So(exitCode, ShouldEqual, 1)
 			})
 
-			Convey("Fatalf", func() {
-				So(func() { std.Fatalf("panic %s", "no") }, ShouldNotPanic)
-				So(exitCode, ShouldEqual, 1)
+			c.Convey("Fatalf", func(c C) {
+				c.So(func() { std.Fatalf("panic %s", "no") }, ShouldNotPanic)
+				c.So(exitCode, ShouldEqual, 1)
 			})
 		})
 	})
