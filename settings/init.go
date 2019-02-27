@@ -15,7 +15,11 @@ var Module = module.Module{
 // New init viper settings
 func New(app *Core) (*viper.Viper, error) {
 	v := viper.New()
-	v.SetEnvPrefix(app.Prefix)
+	if len(app.Prefix) > 0 {
+		v.SetEnvPrefix(app.Prefix)
+	} else {
+		v.SetEnvPrefix(app.Name)
+	}
 	v.AutomaticEnv()
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
