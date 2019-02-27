@@ -53,7 +53,7 @@ func TestHelium(t *testing.T) {
 			os.Setenv("ABC_CONFIG_TYPE", "toml")
 
 			h, err := New(&Settings{
-				Name: "ABC",
+				Name: "Abc",
 			}, module.Module{
 				{Constructor: func(cfg *settings.Core) App {
 					c.So(cfg.File, ShouldEqual, tmpFile.Name())
