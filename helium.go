@@ -6,6 +6,7 @@ import (
 	stdlog "log"
 	"os"
 	"reflect"
+	"strings"
 
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
@@ -47,12 +48,13 @@ func New(cfg *Settings, mod module.Module) (*Helium, error) {
 		if cfg.Prefix == "" {
 			cfg.Prefix = cfg.Name
 		}
+		cfg.Prefix = strings.ToUpper(cfg.Prefix)
 
-		if tmp := os.Getenv("HELIUM_CONFIG"); tmp != "" {
+		if tmp := os.Getenv(cfg.Prefix + "_CONFIG"); tmp != "" {
 			cfg.File = tmp
 		}
 
-		if tmp := os.Getenv("HELIUM_CONFIG_TYPE"); tmp != "" {
+		if tmp := os.Getenv(cfg.Prefix + "_CONFIG_TYPE"); tmp != "" {
 			cfg.Type = tmp
 		}
 

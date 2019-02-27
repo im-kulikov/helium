@@ -49,10 +49,12 @@ func TestHelium(t *testing.T) {
 
 			defer os.Remove(tmpFile.Name()) // clean up
 
-			os.Setenv("HELIUM_CONFIG", tmpFile.Name())
-			os.Setenv("HELIUM_CONFIG_TYPE", "toml")
+			os.Setenv("ABC_CONFIG", tmpFile.Name())
+			os.Setenv("ABC_CONFIG_TYPE", "toml")
 
-			h, err := New(&Settings{}, module.Module{
+			h, err := New(&Settings{
+				Name: "Abc",
+			}, module.Module{
 				{Constructor: func(cfg *settings.Core) App {
 					c.So(cfg.File, ShouldEqual, tmpFile.Name())
 					c.So(cfg.Type, ShouldEqual, "toml")
