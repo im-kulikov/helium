@@ -21,9 +21,13 @@ func TestZapLogger(t *testing.T) {
 				cfg := NewLoggerConfig(v)
 				c.So(cfg.Level, ShouldBeZeroValue)
 				c.So(cfg.Format, ShouldBeZeroValue)
+				c.So(cfg.Debug, ShouldBeZeroValue)
+				c.So(cfg.NoDisclaimer, ShouldBeZeroValue)
 			})
 
 			c.Convey("setup config", func(c C) {
+				v.SetDefault("debug", true)
+				v.SetDefault("logger.no_disclaimer", true)
 				v.SetDefault("logger.level", "info")
 				v.SetDefault("logger.format", "console")
 				cfg := NewLoggerConfig(v)
@@ -72,6 +76,9 @@ func TestZapLogger(t *testing.T) {
 
 		c.Convey("check logger", func(c C) {
 			c.Convey("all ok", func(c C) {
+				v.SetDefault("debug", true)
+				v.SetDefault("logger.no_disclaimer", true)
+
 				cfg := NewLoggerConfig(v)
 				log, err := NewLogger(cfg, &settings.Core{})
 				c.So(err, ShouldBeNil)

@@ -9,15 +9,19 @@ import (
 
 // Config for logger
 type Config struct {
-	Level  string
-	Format string
+	Level        string
+	Format       string
+	Debug        bool
+	NoDisclaimer bool
 }
 
 // NewLoggerConfig returns logger config
 func NewLoggerConfig(v *viper.Viper) *Config {
 	return &Config{
-		Level:  v.GetString("logger.level"),
-		Format: v.GetString("logger.format"),
+		Debug:        v.GetBool("debug"),
+		Level:        v.GetString("logger.level"),
+		Format:       v.GetString("logger.format"),
+		NoDisclaimer: v.GetBool("logger.no_disclaimer"),
 	}
 }
 
@@ -56,7 +60,13 @@ func NewSugaredLogger(log *zap.Logger) *zap.SugaredLogger {
 
 // NewLogger init logger
 func NewLogger(lcfg *Config, app *settings.Core) (*zap.Logger, error) {
-	cfg := zap.NewProductionConfig()
+	var cfg zap.Config
+	if lcfg.Debug {
+		cfg = zap.NewDevelopmentConfig()
+	} else {
+		cfg = zap.NewProductionConfig()
+	}
+
 	cfg.OutputPaths = []string{"stdout"}
 	cfg.ErrorOutputPaths = []string{"stdout"}
 
@@ -72,6 +82,11 @@ func NewLogger(lcfg *Config, app *settings.Core) (*zap.Logger, error) {
 	l, err := cfg.Build()
 	if err != nil {
 		return nil, err
+	}
+
+	// don't display app name and version
+	if lcfg.NoDisclaimer {
+		return l, nil
 	}
 
 	return l.With(

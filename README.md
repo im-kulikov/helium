@@ -106,15 +106,23 @@ Logger formats:
 Configuration for logger
 - yaml example
 ```yaml
+debug: true
+
 logger:
     format: console
     level: info
+    no_disclaimer: false
 ```
 - env example
 ```
+DEBUG=true
+LOGGER_NO_DISCLAIMER=true
 LOGGER_FORMAT=console
 LOGGER_LEVEL=info
 ```
+
+- `debug` - with this option you can enable `zap.DevelopmentConfig()`
+- `logger.no_disclaimer` - with this option, you can disable `app_name` and `app_version` for any reason (not recommended in production)
 
 ## NATS Module
 
