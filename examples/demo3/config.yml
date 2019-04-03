@@ -22,3 +22,5 @@ redis:
 logger:
   level: debug
   format: console
+  color: true
+  full_caller: true

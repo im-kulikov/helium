@@ -12,6 +12,8 @@ type Config struct {
 	Level        string
 	Format       string
 	Debug        bool
+	Color        bool
+	FullCaller   bool
 	NoDisclaimer bool
 }
 
@@ -21,6 +23,8 @@ func NewLoggerConfig(v *viper.Viper) *Config {
 		Debug:        v.GetBool("debug"),
 		Level:        v.GetString("logger.level"),
 		Format:       v.GetString("logger.format"),
+		Color:        v.GetBool("logger.color"),
+		FullCaller:   v.GetBool("logger.full_caller"),
 		NoDisclaimer: v.GetBool("logger.no_disclaimer"),
 	}
 }
@@ -72,6 +76,14 @@ func NewLogger(lcfg *Config, app *settings.Core) (*zap.Logger, error) {
 
 	cfg.Encoding = lcfg.SafeFormat()
 	cfg.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	if lcfg.Color {
+		cfg.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	}
+
+	if lcfg.FullCaller {
+		cfg.EncoderConfig.EncodeCaller = zapcore.FullCallerEncoder
+	}
 
 	var lvl zapcore.Level
 	if err := lvl.Set(lcfg.Level); err != nil {
