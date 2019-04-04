@@ -174,6 +174,17 @@ func TestHelium(t *testing.T) {
 
 				c.So(exitCode, ShouldEqual, 0)
 			})
+
+			c.Convey("should catch context.DeadlineExceeded on dig.Errors", func(c C) {
+				c.So(func() {
+					di := dig.New()
+					CatchTrace(di.Invoke(func() error {
+						return context.DeadlineExceeded
+					}))
+				}, ShouldPanic)
+
+				c.So(exitCode, ShouldEqual, 0)
+			})
 		})
 	})
 }
