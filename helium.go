@@ -127,6 +127,10 @@ func CatchTrace(err error) {
 			break
 		}
 
+		if !v.FieldByName("Reason").IsValid() {
+			break
+		}
+
 		fn = v.FieldByName("Func")
 		err = v.FieldByName("Reason").Interface().(error)
 
