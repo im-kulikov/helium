@@ -127,7 +127,7 @@ func CatchTrace(err error) {
 			break
 		}
 
-		if !v.FieldByName("Reason").IsValid() {
+		if !v.FieldByName("Reason").IsValid() || !v.FieldByName("Func").IsValid() {
 			break
 		}
 
