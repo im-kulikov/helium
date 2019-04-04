@@ -19,7 +19,7 @@
     * [Redis](#redis-module)
     * [Settings](#settings-module)
     * [Web](#web-module)
-* [Examples of code](./examples)
+* [Examples of code](https://github.com/go-helium/demos)
 * [Project Examples](#project-examples)
 * [Example](#example)
 * [Supported Go versions](#supported-go-versions)

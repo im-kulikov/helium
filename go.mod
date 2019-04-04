@@ -7,7 +7,6 @@ require (
 	github.com/chapsuk/mserv v0.4.1
 	github.com/chapsuk/wait v0.3.1 // indirect
 	github.com/chapsuk/worker v0.4.0
-	github.com/davecgh/go-spew v1.1.1
 	github.com/go-redis/redis v6.15.1+incompatible
 	github.com/gopherjs/gopherjs v0.0.0-20181103185306-d547d1d9531e // indirect
 	github.com/kr/pretty v0.1.0 // indirect
@@ -24,7 +23,6 @@ require (
 	github.com/spf13/afero v1.2.1 // indirect
 	github.com/spf13/viper v1.3.1
 	github.com/stretchr/testify v1.3.0 // indirect
-	github.com/urfave/cli v1.20.0
 	go.uber.org/atomic v1.3.2 // indirect
 	go.uber.org/dig v1.7.0
 	go.uber.org/multierr v1.1.0 // indirect

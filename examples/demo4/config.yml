@@ -1,8 +1,0 @@
-api:
-  address: :8080
-  debug: true
-  shutdown_timeout: 10s
-
-logger:
-  level: debug
-  format: console
