@@ -30,9 +30,21 @@ func TestZapLogger(t *testing.T) {
 				v.SetDefault("logger.no_disclaimer", true)
 				v.SetDefault("logger.level", "info")
 				v.SetDefault("logger.format", "console")
+				v.SetDefault("logger.color", true)
+				v.SetDefault("logger.full_caller", true)
+				v.SetDefault("logger.sampling.initial", 100)
+				v.SetDefault("logger.sampling.thereafter", 100)
+
 				cfg := NewLoggerConfig(v)
 				c.So(cfg.Level, ShouldEqual, "info")
 				c.So(cfg.Format, ShouldEqual, "console")
+
+				c.So(cfg.Sampling, ShouldNotBeNil)
+				c.So(cfg.Sampling.Initial, ShouldEqual, 100)
+				c.So(cfg.Sampling.Thereafter, ShouldEqual, 100)
+
+				_, err := NewLogger(cfg, &settings.Core{})
+				c.So(err, ShouldBeNil)
 			})
 
 			c.Convey("config safely", func(c C) {

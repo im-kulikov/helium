@@ -15,11 +15,17 @@ type Config struct {
 	Color        bool
 	FullCaller   bool
 	NoDisclaimer bool
+	Sampling     *zap.SamplingConfig
 }
+
+const (
+	defaultSamplingInitial    = 100
+	defaultSamplingThereafter = 100
+)
 
 // NewLoggerConfig returns logger config
 func NewLoggerConfig(v *viper.Viper) *Config {
-	return &Config{
+	cfg := &Config{
 		Debug:        v.GetBool("debug"),
 		Level:        v.GetString("logger.level"),
 		Format:       v.GetString("logger.format"),
@@ -27,6 +33,23 @@ func NewLoggerConfig(v *viper.Viper) *Config {
 		FullCaller:   v.GetBool("logger.full_caller"),
 		NoDisclaimer: v.GetBool("logger.no_disclaimer"),
 	}
+
+	if v.IsSet("logger.sampling") {
+		cfg.Sampling = &zap.SamplingConfig{
+			Initial:    defaultSamplingInitial,
+			Thereafter: defaultSamplingThereafter,
+		}
+
+		if val := v.GetInt("logger.sampling.initial"); val > 0 {
+			cfg.Sampling.Initial = val
+		}
+
+		if val := v.GetInt("logger.sampling.thereafter"); val > 0 {
+			cfg.Sampling.Thereafter = val
+		}
+	}
+
+	return cfg
 }
 
 // SafeLevel returns valid logger level
@@ -69,6 +92,10 @@ func NewLogger(lcfg *Config, app *settings.Core) (*zap.Logger, error) {
 		cfg = zap.NewDevelopmentConfig()
 	} else {
 		cfg = zap.NewProductionConfig()
+	}
+
+	if lcfg.Sampling != nil {
+		cfg.Sampling = lcfg.Sampling
 	}
 
 	cfg.OutputPaths = []string{"stdout"}
