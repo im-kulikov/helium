@@ -2,6 +2,7 @@ package web
 
 import (
 	"net/http"
+	"net/http/pprof"
 
 	"github.com/chapsuk/mserv"
 	"github.com/im-kulikov/helium/logger"
@@ -35,14 +36,44 @@ type (
 
 		Server mserv.Server `group:"web_server"`
 	}
+
+	pprofParams struct {
+		dig.In
+
+		Handler http.Handler `name:"profile_handler"`
+		Viper   *viper.Viper
+		Logger  logger.StdLogger
+	}
+
+	pprofResult struct {
+		dig.Out
+
+		Handler http.Handler `name:"profile_handler"`
+	}
+
+	metricParams struct {
+		dig.In
+
+		Handler http.Handler `name:"metric_handler"`
+		Viper   *viper.Viper
+		Logger  logger.StdLogger
+	}
+
+	metricResult struct {
+		dig.Out
+
+		Handler http.Handler `name:"metric_handler"`
+	}
 )
 
 var (
 	// ServersModule of web base structs
 	ServersModule = module.Module{
+		{Constructor: newProfileHandler},
+		{Constructor: newProfileServer},
+		{Constructor: newMetricHandler},
+		{Constructor: newMetricServer},
 		{Constructor: NewAPIServer},
-		{Constructor: NewMetricsServer},
-		{Constructor: NewPprofServer},
 		{Constructor: NewMultiServer},
 	}
 )
@@ -53,14 +84,26 @@ func NewMultiServer(params MultiServerParams) mserv.Server {
 	return mserv.New(params.Servers...)
 }
 
-// NewPprofServer returns wrapped pprof http server
-func NewPprofServer(v *viper.Viper, l logger.StdLogger) ServerResult {
-	return newHTTPServer(v, "pprof", http.DefaultServeMux, l)
+func newProfileHandler() pprofResult {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/debug/pprof/", pprof.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+	return pprofResult{Handler: mux}
 }
 
-// NewMetricsServer returns wrapped prometheus http server
-func NewMetricsServer(v *viper.Viper, l logger.StdLogger) ServerResult {
-	return newHTTPServer(v, "metrics", promhttp.Handler(), l)
+func newProfileServer(p pprofParams) ServerResult {
+	return newHTTPServer(p.Viper, "pprof", p.Handler, p.Logger)
+}
+
+func newMetricHandler() metricResult {
+	return metricResult{Handler: promhttp.Handler()}
+}
+
+func newMetricServer(p metricParams) ServerResult {
+	return newHTTPServer(p.Viper, "metrics", p.Handler, p.Logger)
 }
 
 // NewAPIServer creates api server by http.Handler from DI container

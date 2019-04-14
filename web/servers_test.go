@@ -7,8 +7,8 @@ import (
 	"github.com/chapsuk/mserv"
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
-	. "github.com/smartystreets/goconvey/convey"
 	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 )
@@ -18,78 +18,100 @@ func testHTTPHandler() http.Handler {
 }
 
 func TestServers(t *testing.T) {
-	Convey("Servers test suite", t, func(c C) {
-		v := viper.New()
-		z := zap.L()
-		l := logger.NewStdLogger(z)
-		di := dig.New()
+	var (
+		z  = zap.L()
+		di = dig.New()
+		v  = viper.New()
+		l  = logger.NewStdLogger(z)
+	)
 
-		c.Convey("check pprof server", func(c C) {
-			c.Convey("without config", func(c C) {
-				serve := NewPprofServer(v, l)
-				c.So(serve.Server, ShouldBeNil)
-			})
-
-			c.Convey("with config", func(c C) {
-				v.SetDefault("pprof.address", ":6090")
-				serve := NewPprofServer(v, l)
-				c.So(serve.Server, ShouldNotBeNil)
-			})
-		})
-
-		c.Convey("check metrics server", func(c C) {
-			c.Convey("without config", func(c C) {
-				serve := NewMetricsServer(v, l)
-				c.So(serve.Server, ShouldBeNil)
-			})
-
-			c.Convey("with config", func(c C) {
-				v.SetDefault("metrics.address", ":8090")
-				serve := NewMetricsServer(v, l)
-				c.So(serve.Server, ShouldNotBeNil)
-			})
-		})
-
-		c.Convey("check api server", func(c C) {
-			c.Convey("without config", func(c C) {
-				serve := NewAPIServer(v, l, nil)
-				c.So(serve.Server, ShouldBeNil)
-			})
-
-			c.Convey("without handler", func(c C) {
-				v.SetDefault("api.address", ":8090")
-				serve := NewAPIServer(v, l, nil)
-				c.So(serve.Server, ShouldBeNil)
-			})
-
-			c.Convey("should be ok", func(c C) {
-				v.SetDefault("api.address", ":8090")
-				serve := NewAPIServer(v, l, testHTTPHandler())
-				c.So(serve.Server, ShouldNotBeNil)
-			})
-		})
-
-		c.Convey("check multi server", func(c C) {
-			v.SetDefault("pprof.address", ":6090")
-			v.SetDefault("metrics.address", ":8090")
-			v.SetDefault("api.address", ":8090")
-
-			mod := module.Module{
-				{Constructor: NewPprofServer},
-				{Constructor: NewMetricsServer},
-				{Constructor: NewAPIServer},
-				{Constructor: NewMultiServer},
-				{Constructor: func() *viper.Viper { return v }},
-				{Constructor: func() logger.StdLogger { return l }},
-				{Constructor: func() http.Handler { return testHTTPHandler() }},
+	t.Run("check pprof server", func(t *testing.T) {
+		t.Run("without config", func(t *testing.T) {
+			params := pprofParams{
+				Viper:   v,
+				Logger:  l,
+				Handler: newProfileHandler().Handler,
 			}
-
-			err := module.Provide(di, mod)
-			c.So(err, ShouldBeNil)
-			err = di.Invoke(func(serve mserv.Server) {
-				c.So(serve, ShouldHaveSameTypeAs, &mserv.MultiServer{})
-			})
-			c.So(err, ShouldBeNil)
+			serve := newProfileServer(params)
+			assert.Nil(t, serve.Server)
 		})
+
+		t.Run("with config", func(t *testing.T) {
+			v.SetDefault("pprof.address", ":6090")
+			params := pprofParams{
+				Viper:   v,
+				Logger:  l,
+				Handler: newProfileHandler().Handler,
+			}
+			serve := newProfileServer(params)
+			assert.NotNil(t, serve.Server)
+		})
+	})
+
+	t.Run("check metrics server", func(t *testing.T) {
+		t.Run("without config", func(t *testing.T) {
+			params := metricParams{
+				Viper:   v,
+				Logger:  l,
+				Handler: newMetricHandler().Handler,
+			}
+			serve := newMetricServer(params)
+			assert.Nil(t, serve.Server)
+		})
+
+		t.Run("with config", func(t *testing.T) {
+			v.SetDefault("metrics.address", ":8090")
+			params := metricParams{
+				Viper:   v,
+				Logger:  l,
+				Handler: newMetricHandler().Handler,
+			}
+			serve := newMetricServer(params)
+			assert.NotNil(t, serve.Server)
+		})
+	})
+
+	t.Run("check api server", func(t *testing.T) {
+		t.Run("without config", func(t *testing.T) {
+			serve := NewAPIServer(v, l, nil)
+			assert.Nil(t, serve.Server)
+		})
+
+		t.Run("without handler", func(t *testing.T) {
+			v.SetDefault("api.address", ":8090")
+			serve := NewAPIServer(v, l, nil)
+			assert.Nil(t, serve.Server)
+		})
+
+		t.Run("should be ok", func(t *testing.T) {
+			v.SetDefault("api.address", ":8090")
+			serve := NewAPIServer(v, l, testHTTPHandler())
+			assert.NotNil(t, serve.Server)
+		})
+	})
+
+	t.Run("check multi server", func(t *testing.T) {
+		v.SetDefault("pprof.address", ":6090")
+		v.SetDefault("metrics.address", ":8090")
+		v.SetDefault("api.address", ":8090")
+
+		mod := module.Module{
+			{Constructor: newProfileHandler},
+			{Constructor: newProfileServer},
+			{Constructor: newMetricHandler},
+			{Constructor: newMetricServer},
+			{Constructor: NewAPIServer},
+			{Constructor: NewMultiServer},
+			{Constructor: func() *viper.Viper { return v }},
+			{Constructor: func() logger.StdLogger { return l }},
+			{Constructor: func() http.Handler { return testHTTPHandler() }},
+		}
+
+		err := module.Provide(di, mod)
+		assert.NoError(t, err)
+		err = di.Invoke(func(serve mserv.Server) {
+			assert.IsType(t, &mserv.MultiServer{}, serve)
+		})
+		assert.NoError(t, err)
 	})
 }
