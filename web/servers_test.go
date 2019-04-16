@@ -27,7 +27,7 @@ func TestServers(t *testing.T) {
 
 	t.Run("check pprof server", func(t *testing.T) {
 		t.Run("without config", func(t *testing.T) {
-			params := pprofParams{
+			params := profileParams{
 				Viper:   v,
 				Logger:  l,
 				Handler: newProfileHandler().Handler,
@@ -38,7 +38,7 @@ func TestServers(t *testing.T) {
 
 		t.Run("with config", func(t *testing.T) {
 			v.SetDefault("pprof.address", ":6090")
-			params := pprofParams{
+			params := profileParams{
 				Viper:   v,
 				Logger:  l,
 				Handler: newProfileHandler().Handler,
@@ -96,16 +96,14 @@ func TestServers(t *testing.T) {
 		v.SetDefault("api.address", ":8090")
 
 		mod := module.Module{
-			{Constructor: newProfileHandler},
-			{Constructor: newProfileServer},
-			{Constructor: newMetricHandler},
-			{Constructor: newMetricServer},
-			{Constructor: NewAPIServer},
-			{Constructor: NewMultiServer},
 			{Constructor: func() *viper.Viper { return v }},
 			{Constructor: func() logger.StdLogger { return l }},
 			{Constructor: func() http.Handler { return testHTTPHandler() }},
-		}
+		}.Append(
+			ServersModule,
+			ProfileHandlerModule,
+			MetricHandlerModule,
+		)
 
 		err := module.Provide(di, mod)
 		assert.NoError(t, err)

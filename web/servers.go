@@ -37,15 +37,15 @@ type (
 		Server mserv.Server `group:"web_server"`
 	}
 
-	pprofParams struct {
+	profileParams struct {
 		dig.In
 
-		Handler http.Handler `name:"profile_handler"`
+		Handler http.Handler `name:"profile_handler" optional:"true"`
 		Viper   *viper.Viper
 		Logger  logger.StdLogger
 	}
 
-	pprofResult struct {
+	profileResult struct {
 		dig.Out
 
 		Handler http.Handler `name:"profile_handler"`
@@ -54,7 +54,7 @@ type (
 	metricParams struct {
 		dig.In
 
-		Handler http.Handler `name:"metric_handler"`
+		Handler http.Handler `name:"metric_handler" optional:"true"`
 		Viper   *viper.Viper
 		Logger  logger.StdLogger
 	}
@@ -67,11 +67,19 @@ type (
 )
 
 var (
+	// ProfileHandlerModule that provides default profile handler
+	ProfileHandlerModule = module.Module{
+		{Constructor: newProfileHandler},
+	}
+
+	// MetricHandlerModule that provides default metric handler
+	MetricHandlerModule = module.Module{
+		{Constructor: newMetricHandler},
+	}
+
 	// ServersModule of web base structs
 	ServersModule = module.Module{
-		{Constructor: newProfileHandler},
 		{Constructor: newProfileServer},
-		{Constructor: newMetricHandler},
 		{Constructor: newMetricServer},
 		{Constructor: NewAPIServer},
 		{Constructor: NewMultiServer},
@@ -84,17 +92,17 @@ func NewMultiServer(params MultiServerParams) mserv.Server {
 	return mserv.New(params.Servers...)
 }
 
-func newProfileHandler() pprofResult {
+func newProfileHandler() profileResult {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
 	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	return pprofResult{Handler: mux}
+	return profileResult{Handler: mux}
 }
 
-func newProfileServer(p pprofParams) ServerResult {
+func newProfileServer(p profileParams) ServerResult {
 	return newHTTPServer(p.Viper, "pprof", p.Handler, p.Logger)
 }
 
@@ -112,14 +120,14 @@ func NewAPIServer(v *viper.Viper, l logger.StdLogger, h http.Handler) ServerResu
 }
 
 func newHTTPServer(v *viper.Viper, key string, h http.Handler, l logger.StdLogger) ServerResult {
-	if !v.IsSet(key + ".address") {
-		l.Printf("Empty bind address for %s server, skip", key)
-		return ServerResult{}
-	}
 	if h == nil {
 		l.Printf("Empty handler for %s server, skip", key)
 		return ServerResult{}
+	} else if !v.IsSet(key + ".address") {
+		l.Printf("Empty bind address for %s server, skip", key)
+		return ServerResult{}
 	}
+
 	l.Printf("Create %s http server, bind address: %s", key, v.GetString(key+".address"))
 	return ServerResult{
 		Server: mserv.NewHTTPServer(
