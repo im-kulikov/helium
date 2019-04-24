@@ -43,9 +43,7 @@ func TestHelium(t *testing.T) {
 
 		c.Convey("create new helium and setup ENV", func(c C) {
 			tmpFile, err := ioutil.TempFile("", "example")
-			if err != nil {
-				log.Fatal(err)
-			}
+			c.So(err, ShouldBeNil)
 
 			defer os.Remove(tmpFile.Name()) // clean up
 
@@ -133,6 +131,11 @@ func TestHelium(t *testing.T) {
 				})
 				defer monkey.Unpatch(fmt.Fprintf)
 
+				monkey.Patch(logger.NewLogger, func(*logger.Config, *settings.Core) (*zap.Logger, error) {
+					return zap.NewNop(), nil
+				})
+				defer monkey.Unpatch(logger.NewLogger)
+
 				err := errors.New("test")
 				Catch(err)
 				c.So(exitCode, ShouldEqual, 1)
@@ -165,6 +168,9 @@ func TestHelium(t *testing.T) {
 			})
 
 			c.Convey("should catch stacktrace on dig.Errors", func(c C) {
+				monkey.Patch(fmt.Fprintf, func(io.Writer, string, ...interface{}) (int, error) { return 0, nil })
+				defer monkey.Unpatch(fmt.Fprintf)
+
 				c.So(func() {
 					di := dig.New()
 					CatchTrace(di.Invoke(func(log *zap.Logger) error {

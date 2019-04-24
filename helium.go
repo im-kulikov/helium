@@ -12,6 +12,7 @@ import (
 	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/settings"
 	"github.com/spf13/viper"
+	"go.uber.org/atomic"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 )
@@ -36,6 +37,11 @@ type (
 		BuildTime    string
 		BuildVersion string
 	}
+)
+
+var (
+	appName    = atomic.NewString("helium")
+	appVersion = atomic.NewString("dev")
 )
 
 // New helium instance
@@ -66,6 +72,9 @@ func New(cfg *Settings, mod module.Module) (*Helium, error) {
 			BuildTime:    cfg.BuildTime,
 			BuildVersion: cfg.BuildVersion,
 		}
+
+		appName.Store(cfg.Name)
+		appVersion.Store(cfg.BuildVersion)
 
 		mod = append(mod, core.Provider())
 	}
@@ -98,8 +107,8 @@ func Catch(err error) {
 	v := viper.New()
 	log, logErr := logger.
 		NewLogger(logger.NewLoggerConfig(v), &settings.Core{
-			Name:         "",
-			BuildVersion: "",
+			Name:         appName.Load(),
+			BuildVersion: appVersion.Load(),
 		})
 	if logErr != nil {
 		stdlog.Fatal(err)
