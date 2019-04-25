@@ -3,34 +3,35 @@ package settings
 import (
 	"testing"
 
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 )
 
 type providerType = func() *Core
 
 func TestApp(t *testing.T) {
-	Convey("Settings test suite", t, func(c C) {
+
+	t.Run("check provider", func(t *testing.T) {
 		cfg := &Core{}
 
-		c.Convey("check provider", func(c C) {
-			provider := cfg.Provider()
-			c.So(provider, ShouldNotBeNil)
-			c.So(provider.Constructor, ShouldHaveSameTypeAs, providerType(nil))
-			appProvider := provider.Constructor.(providerType)
-			c.So(appProvider(), ShouldEqual, cfg)
-		})
+		provider := cfg.Provider()
+		require.NotNil(t, provider)
+		require.IsType(t, providerType(nil), provider.Constructor)
+		appProvider := provider.Constructor.(providerType)
+		require.Equal(t, cfg, appProvider())
+	})
 
-		c.Convey("safe type", func(c C) {
-			cases := []string{"bad", "toml", "yml", "yaml"}
-			for _, item := range cases {
-				cfg.Type = item
+	t.Run("safe type", func(t *testing.T) {
+		cfg := &Core{}
 
-				if item == "bad" {
-					item = "yml"
-				}
+		cases := []string{"bad", "toml", "yml", "yaml"}
+		for _, item := range cases {
+			cfg.Type = item
 
-				c.So(cfg.SafeType(), ShouldEqual, item)
+			if item == "bad" {
+				item = "yml"
 			}
-		})
+
+			require.Equal(t, item, cfg.SafeType())
+		}
 	})
 }
