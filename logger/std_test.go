@@ -5,39 +5,36 @@ import (
 	"testing"
 
 	"bou.ke/monkey"
-	. "github.com/smartystreets/goconvey/convey"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 )
 
 func TestStdLogger(t *testing.T) {
-	Convey("StdLogger test suite", t, func(c C) {
-		std := NewStdLogger(zap.L())
+	std := NewStdLogger(zap.L())
 
-		c.Convey("Not fatal calls should not panic", func(c C) {
-			c.Convey("print", func(c C) {
-				c.So(func() { std.Print("panic no") }, ShouldNotPanic)
-			})
-
-			c.Convey("printf", func(c C) {
-				c.So(func() { std.Printf("panic %s", "no") }, ShouldNotPanic)
-			})
-
+	t.Run("not fatal calls should not panic", func(t *testing.T) {
+		t.Run("print", func(t *testing.T) {
+			require.NotPanics(t, func() { std.Print("panic no") })
 		})
 
-		c.Convey("Fatal(f) should call os.Exit with 1 code", func(c C) {
-			var exitCode int
-			monkey.Patch(os.Exit, func(code int) { exitCode = code })
-			defer monkey.Unpatch(os.Exit)
+		t.Run("printf", func(t *testing.T) {
+			require.NotPanics(t, func() { std.Printf("panic no") })
+		})
+	})
 
-			c.Convey("Fatal", func(c C) {
-				c.So(func() { std.Fatal("panic no") }, ShouldNotPanic)
-				c.So(exitCode, ShouldEqual, 1)
-			})
+	t.Run("Fatal(f) should call os.Exit with 1 code", func(t *testing.T) {
+		var exitCode int
+		monkey.Patch(os.Exit, func(code int) { exitCode = code })
+		defer monkey.Unpatch(os.Exit)
 
-			c.Convey("Fatalf", func(c C) {
-				c.So(func() { std.Fatalf("panic %s", "no") }, ShouldNotPanic)
-				c.So(exitCode, ShouldEqual, 1)
-			})
+		t.Run("fatal", func(t *testing.T) {
+			require.NotPanics(t, func() { std.Fatal("panic no") })
+			require.Equal(t, 1, exitCode)
+		})
+
+		t.Run("fatalf", func(t *testing.T) {
+			require.NotPanics(t, func() { std.Fatalf("panic no") })
+			require.Equal(t, 1, exitCode)
 		})
 	})
 }

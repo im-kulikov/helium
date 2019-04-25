@@ -1,6 +1,8 @@
 package logger
 
 import (
+	"strings"
+
 	"github.com/im-kulikov/helium/settings"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
@@ -10,6 +12,7 @@ import (
 // Config for logger
 type Config struct {
 	Level        string
+	TraceLevel   string
 	Format       string
 	Debug        bool
 	Color        bool
@@ -28,6 +31,7 @@ func NewLoggerConfig(v *viper.Viper) *Config {
 	cfg := &Config{
 		Debug:        v.GetBool("debug"),
 		Level:        v.GetString("logger.level"),
+		TraceLevel:   v.GetString("logger.trace_level"),
 		Format:       v.GetString("logger.format"),
 		Color:        v.GetBool("logger.color"),
 		FullCaller:   v.GetBool("logger.full_caller"),
@@ -52,20 +56,23 @@ func NewLoggerConfig(v *viper.Viper) *Config {
 	return cfg
 }
 
-// SafeLevel returns valid logger level
-// use info level by default
-func (c Config) SafeLevel() string {
-	switch c.Level {
-	case "debug", "DEBUG":
-	case "info", "INFO":
-	case "warn", "WARN":
-	case "error", "ERROR":
-	case "panic", "PANIC":
-	case "fatal", "FATAL":
+func SafeLevel(lvl string, defaultLvl zapcore.Level) zap.AtomicLevel {
+	switch strings.ToLower(lvl) {
+	case "debug":
+		return zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	case "info":
+		return zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	case "warn":
+		return zap.NewAtomicLevelAt(zapcore.WarnLevel)
+	case "error":
+		return zap.NewAtomicLevelAt(zapcore.ErrorLevel)
+	case "panic":
+		return zap.NewAtomicLevelAt(zapcore.PanicLevel)
+	case "fatal":
+		return zap.NewAtomicLevelAt(zapcore.FatalLevel)
 	default:
-		return "info"
+		return zap.NewAtomicLevelAt(defaultLvl)
 	}
-	return c.Level
 }
 
 // SafeFormat returns valid logger output format
@@ -112,13 +119,12 @@ func NewLogger(lcfg *Config, app *settings.Core) (*zap.Logger, error) {
 		cfg.EncoderConfig.EncodeCaller = zapcore.FullCallerEncoder
 	}
 
-	var lvl zapcore.Level
-	if err := lvl.Set(lcfg.Level); err != nil {
-		return nil, err
-	}
-	cfg.Level = zap.NewAtomicLevelAt(lvl)
+	cfg.Level = SafeLevel(lcfg.Level, zapcore.InfoLevel)
+	traceLevel := SafeLevel(lcfg.TraceLevel, zapcore.WarnLevel)
 
-	l, err := cfg.Build()
+	l, err := cfg.Build(
+		// enable trace only for current log-level
+		zap.AddStacktrace(traceLevel))
 	if err != nil {
 		return nil, err
 	}
