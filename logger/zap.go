@@ -56,6 +56,7 @@ func NewLoggerConfig(v *viper.Viper) *Config {
 	return cfg
 }
 
+// SafeLevel returns valid logger level or default
 func SafeLevel(lvl string, defaultLvl zapcore.Level) zap.AtomicLevel {
 	switch strings.ToLower(lvl) {
 	case "debug":
