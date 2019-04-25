@@ -2,11 +2,11 @@ package workers
 
 import (
 	"context"
-	"errors"
 
 	"github.com/chapsuk/worker"
 	"github.com/go-redis/redis"
 	"github.com/im-kulikov/helium/module"
+	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
@@ -74,7 +74,7 @@ func NewWorkers(p Params) (Result, error) {
 func workerByConfig(opts options) (*worker.Worker, error) {
 	key := "workers." + opts.CfgKey
 	if !opts.Viper.IsSet(key) {
-		return nil, errors.New("missing worker config key: " + key)
+		return nil, errors.Wrap(ErrMissingKey, key)
 	}
 
 	if opts.Viper.IsSet(key+".disabled") && opts.Viper.GetBool(key+".disabled") {
@@ -95,7 +95,7 @@ func workerByConfig(opts options) (*worker.Worker, error) {
 
 	if opts.Viper.IsSet(key + ".lock") {
 		if opts.Redis == nil {
-			return nil, errors.New("gotten nil redis client for exclusive worker: " + opts.CfgKey)
+			return nil, errors.Wrap(ErrRedisClientNil, opts.CfgKey)
 
 		}
 		lockOptions := worker.RedisLockOptions{
