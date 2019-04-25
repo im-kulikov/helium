@@ -111,6 +111,7 @@ debug: true
 logger:
     format: console
     level: info
+    trace_level: fatal
     no_disclaimer: false
     color: true
     full_caller: true
@@ -126,12 +127,14 @@ LOGGER_COLOR=true
 LOGGER_FULL_CALLER=true
 LOGGER_FORMAT=console
 LOGGER_LEVEL=info
+LOGGER_TRACE_LEVEL=fatal
 LOGGER_SAMPLING_INITIAL=100
 LOGGER_SAMPLING_THEREAFTER=100
 ```
 
 - `debug` - with this option you can enable `zap.DevelopmentConfig()`
 - `logger.no_disclaimer` - with this option, you can disable `app_name` and `app_version` for any reason (not recommended in production)
+- `logger.trace_level` - configures the Logger to record a stack trace for all messages at or above a given level
 - `logger.color` - serializes a Level to an all-caps string and adds color
 - `logger.full_caller` - serializes a caller in /full/path/to/package/file:line format
 - `logger.sampling.initial` and `logger.sampling.thereafter` to setup [logger sampling](https://godoc.org/go.uber.org/zap#SamplingConfig). SamplingConfig sets a sampling strategy for the logger. Sampling caps the global CPU and I/O load that logging puts on your process while attempting to preserve a representative subset of your logs. Values configured here are per-second. See [zapcore.NewSampler](https://godoc.org/go.uber.org/zap/zapcore#NewSampler) for details.
