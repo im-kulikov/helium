@@ -15,7 +15,7 @@
 * [About Helium and modules](#about-helium-and-modules)
     * [Logger](#logger-module)
     * [NATS](#nats-module)
-    * [ORM](#orm-module)
+    * [PostgreSQL](#postgresql-module)
     * [Redis](#redis-module)
     * [Settings](#settings-module)
     * [Web](#web-module)
