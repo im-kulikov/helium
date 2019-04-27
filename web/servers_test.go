@@ -2,6 +2,7 @@ package web
 
 import (
 	"io/ioutil"
+	"net"
 	"net/http"
 	"testing"
 
@@ -99,11 +100,24 @@ func TestServers(t *testing.T) {
 	})
 
 	t.Run("check multi server", func(t *testing.T) {
-		assert := require.New(t)
+		var (
+			err     error
+			assert  = require.New(t)
+			servers = map[string]net.Listener{
+				"pprof.address":   nil,
+				"metrics.address": nil,
+				"api.address":     nil,
+			}
+		)
 
-		v.SetDefault("pprof.address", ":6090")
-		v.SetDefault("metrics.address", ":8090")
-		v.SetDefault("api.address", ":8080")
+		// Randomize ports:
+		for name := range servers {
+			servers[name], err = net.Listen("tcp", ":0")
+			assert.NoError(err)
+			assert.NoError(servers[name].Close())
+
+			v.SetDefault(name, servers[name].Addr().String())
+		}
 
 		mod := module.Module{
 			{Constructor: func() *viper.Viper { return v }},
@@ -123,8 +137,8 @@ func TestServers(t *testing.T) {
 			ServersModule,
 		)
 
-		err := module.Provide(di, mod)
-		assert.NoError(err)
+		assert.NoError(module.Provide(di, mod))
+
 		err = di.Invoke(func(serve mserv.Server) {
 			assert.IsType(&mserv.MultiServer{}, serve)
 
@@ -132,49 +146,23 @@ func TestServers(t *testing.T) {
 		})
 		assert.NoError(err)
 
-		{ // api handler
-			resp, err := http.Get("http://localhost:8080/test")
-			assert.NoError(err)
+		for name, lis := range servers {
+			{
+				t.Logf("check for %q on %q", name, lis.Addr())
 
-			defer func() {
-				err := resp.Body.Close()
+				resp, err := http.Get("http://" + lis.Addr().String() + "/test")
 				assert.NoError(err)
-			}()
 
-			data, err := ioutil.ReadAll(resp.Body)
-			assert.NoError(err)
+				defer func() {
+					err := resp.Body.Close()
+					assert.NoError(err)
+				}()
 
-			assert.Equal(expectResult, data)
-		}
-
-		{ // profile handler
-			resp, err := http.Get("http://localhost:6090/test")
-			assert.NoError(err)
-
-			defer func() {
-				err := resp.Body.Close()
+				data, err := ioutil.ReadAll(resp.Body)
 				assert.NoError(err)
-			}()
 
-			data, err := ioutil.ReadAll(resp.Body)
-			assert.NoError(err)
-
-			assert.Equal(expectResult, data)
-		}
-
-		{ // Metrics handler
-			resp, err := http.Get("http://localhost:8090/test")
-			assert.NoError(err)
-
-			defer func() {
-				err := resp.Body.Close()
-				assert.NoError(err)
-			}()
-
-			data, err := ioutil.ReadAll(resp.Body)
-			assert.NoError(err)
-
-			assert.Equal(expectResult, data)
+				assert.Equal(expectResult, data)
+			}
 		}
 	})
 }
