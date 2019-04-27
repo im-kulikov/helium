@@ -1,6 +1,7 @@
 package web
 
 import (
+	"io/ioutil"
 	"net/http"
 	"testing"
 
@@ -8,13 +9,20 @@ import (
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
 	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 )
 
-func testHTTPHandler() http.Handler {
-	return http.NewServeMux()
+var expectResult = []byte("OK")
+
+func testHTTPHandler(assert *require.Assertions) http.Handler {
+	mux := http.NewServeMux()
+	mux.HandleFunc("/test", func(w http.ResponseWriter, _ *http.Request) {
+		_, err := w.Write(expectResult)
+		assert.NoError(err)
+	})
+	return mux
 }
 
 func TestServers(t *testing.T) {
@@ -28,88 +36,145 @@ func TestServers(t *testing.T) {
 	t.Run("check pprof server", func(t *testing.T) {
 		t.Run("without config", func(t *testing.T) {
 			params := profileParams{
-				Viper:   v,
-				Logger:  l,
-				Handler: newProfileHandler().Handler,
+				Viper:  v,
+				Logger: l,
 			}
 			serve := newProfileServer(params)
-			assert.Nil(t, serve.Server)
+			require.Nil(t, serve.Server)
 		})
 
 		t.Run("with config", func(t *testing.T) {
 			v.SetDefault("pprof.address", ":6090")
 			params := profileParams{
-				Viper:   v,
-				Logger:  l,
-				Handler: newProfileHandler().Handler,
+				Viper:  v,
+				Logger: l,
 			}
 			serve := newProfileServer(params)
-			assert.NotNil(t, serve.Server)
+			require.NotNil(t, serve.Server)
+			require.IsType(t, &mserv.HTTPServer{}, serve.Server)
 		})
 	})
 
 	t.Run("check metrics server", func(t *testing.T) {
 		t.Run("without config", func(t *testing.T) {
 			params := metricParams{
-				Viper:   v,
-				Logger:  l,
-				Handler: newMetricHandler().Handler,
+				Viper:  v,
+				Logger: l,
 			}
 			serve := newMetricServer(params)
-			assert.Nil(t, serve.Server)
+			require.Nil(t, serve.Server)
 		})
 
 		t.Run("with config", func(t *testing.T) {
 			v.SetDefault("metrics.address", ":8090")
 			params := metricParams{
-				Viper:   v,
-				Logger:  l,
-				Handler: newMetricHandler().Handler,
+				Viper:  v,
+				Logger: l,
 			}
 			serve := newMetricServer(params)
-			assert.NotNil(t, serve.Server)
+			require.NotNil(t, serve.Server)
+			require.IsType(t, &mserv.HTTPServer{}, serve.Server)
 		})
 	})
 
 	t.Run("check api server", func(t *testing.T) {
 		t.Run("without config", func(t *testing.T) {
 			serve := NewAPIServer(v, l, nil)
-			assert.Nil(t, serve.Server)
+			require.Nil(t, serve.Server)
 		})
 
 		t.Run("without handler", func(t *testing.T) {
 			v.SetDefault("api.address", ":8090")
 			serve := NewAPIServer(v, l, nil)
-			assert.Nil(t, serve.Server)
+			require.Nil(t, serve.Server)
 		})
 
 		t.Run("should be ok", func(t *testing.T) {
+			assert := require.New(t)
 			v.SetDefault("api.address", ":8090")
-			serve := NewAPIServer(v, l, testHTTPHandler())
-			assert.NotNil(t, serve.Server)
+			serve := NewAPIServer(v, l, testHTTPHandler(assert))
+			assert.NotNil(serve.Server)
+			assert.IsType(&mserv.HTTPServer{}, serve.Server)
 		})
 	})
 
 	t.Run("check multi server", func(t *testing.T) {
+		assert := require.New(t)
+
 		v.SetDefault("pprof.address", ":6090")
 		v.SetDefault("metrics.address", ":8090")
-		v.SetDefault("api.address", ":8090")
+		v.SetDefault("api.address", ":8080")
 
 		mod := module.Module{
 			{Constructor: func() *viper.Viper { return v }},
 			{Constructor: func() logger.StdLogger { return l }},
-			{Constructor: func() http.Handler { return testHTTPHandler() }},
+			{Constructor: func() http.Handler { return testHTTPHandler(assert) }},
+
+			{
+				Constructor: func() http.Handler { return testHTTPHandler(assert) },
+				Options:     []dig.ProvideOption{dig.Name("metric_handler")},
+			},
+
+			{
+				Constructor: func() http.Handler { return testHTTPHandler(assert) },
+				Options:     []dig.ProvideOption{dig.Name("profile_handler")},
+			},
 		}.Append(
 			ServersModule,
-			ProfileHandlerModule,
-			MetricHandlerModule,
 		)
 
 		err := module.Provide(di, mod)
-		assert.NoError(t, err)
+		assert.NoError(err)
 		err = di.Invoke(func(serve mserv.Server) {
-			assert.IsType(t, &mserv.MultiServer{}, serve)
+			assert.IsType(&mserv.MultiServer{}, serve)
+
+			serve.Start()
 		})
-		assert.NoError(t, err)
+		assert.NoError(err)
+
+		{ // api handler
+			resp, err := http.Get("http://localhost:8080/test")
+			assert.NoError(err)
+
+			defer func() {
+				err := resp.Body.Close()
+				assert.NoError(err)
+			}()
+
+			data, err := ioutil.ReadAll(resp.Body)
+			assert.NoError(err)
+
+			assert.Equal(expectResult, data)
+		}
+
+		{ // profile handler
+			resp, err := http.Get("http://localhost:6090/test")
+			assert.NoError(err)
+
+			defer func() {
+				err := resp.Body.Close()
+				assert.NoError(err)
+			}()
+
+			data, err := ioutil.ReadAll(resp.Body)
+			assert.NoError(err)
+
+			assert.Equal(expectResult, data)
+		}
+
+		{ // Metrics handler
+			resp, err := http.Get("http://localhost:8090/test")
+			assert.NoError(err)
+
+			defer func() {
+				err := resp.Body.Close()
+				assert.NoError(err)
+			}()
+
+			data, err := ioutil.ReadAll(resp.Body)
+			assert.NoError(err)
+
+			assert.Equal(expectResult, data)
+		}
 	})
 }
