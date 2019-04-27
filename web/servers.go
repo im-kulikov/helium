@@ -45,12 +45,6 @@ type (
 		Logger  logger.StdLogger
 	}
 
-	profileResult struct {
-		dig.Out
-
-		Handler http.Handler `name:"profile_handler"`
-	}
-
 	metricParams struct {
 		dig.In
 
@@ -58,25 +52,9 @@ type (
 		Viper   *viper.Viper
 		Logger  logger.StdLogger
 	}
-
-	metricResult struct {
-		dig.Out
-
-		Handler http.Handler `name:"metric_handler"`
-	}
 )
 
 var (
-	// ProfileHandlerModule that provides default profile handler
-	ProfileHandlerModule = module.Module{
-		{Constructor: newProfileHandler},
-	}
-
-	// MetricHandlerModule that provides default metric handler
-	MetricHandlerModule = module.Module{
-		{Constructor: newMetricHandler},
-	}
-
 	// ServersModule of web base structs
 	ServersModule = module.Module{
 		{Constructor: newProfileServer},
@@ -92,34 +70,35 @@ func NewMultiServer(params MultiServerParams) mserv.Server {
 	return mserv.New(params.Servers...)
 }
 
-func newProfileHandler() profileResult {
+func newProfileServer(p profileParams) ServerResult {
 	mux := http.NewServeMux()
 	mux.HandleFunc("/debug/pprof/", pprof.Index)
 	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
 	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-	return profileResult{Handler: mux}
-}
-
-func newProfileServer(p profileParams) ServerResult {
-	return newHTTPServer(p.Viper, "pprof", p.Handler, p.Logger)
-}
-
-func newMetricHandler() metricResult {
-	return metricResult{Handler: promhttp.Handler()}
+	if p.Handler != nil {
+		mux.Handle("/", p.Handler)
+	}
+	return NewHTTPServer(p.Viper, "pprof", mux, p.Logger)
 }
 
 func newMetricServer(p metricParams) ServerResult {
-	return newHTTPServer(p.Viper, "metrics", p.Handler, p.Logger)
+	mux := http.NewServeMux()
+	mux.Handle("/metrics", promhttp.Handler())
+	if p.Handler != nil {
+		mux.Handle("/", p.Handler)
+	}
+	return NewHTTPServer(p.Viper, "metrics", mux, p.Logger)
 }
 
 // NewAPIServer creates api server by http.Handler from DI container
 func NewAPIServer(v *viper.Viper, l logger.StdLogger, h http.Handler) ServerResult {
-	return newHTTPServer(v, "api", h, l)
+	return NewHTTPServer(v, "api", h, l)
 }
 
-func newHTTPServer(v *viper.Viper, key string, h http.Handler, l logger.StdLogger) ServerResult {
+// NewHTTPServer creates http-server that will be embedded into multi-server
+func NewHTTPServer(v *viper.Viper, key string, h http.Handler, l logger.StdLogger) ServerResult {
 	if h == nil {
 		l.Printf("Empty handler for %s server, skip", key)
 		return ServerResult{}

@@ -282,6 +282,8 @@ Viper is a prioritized configuration registry. It maintains a set of configurati
 - `ServersModule` puts into container [multi-server](https://github.com/chapsuk/mserv):
     - [pprof](https://golang.org/pkg/net/http/pprof/) endpoint
     - [metrics](https://github.com/prometheus/client_golang) enpoint (by Prometheus)
+    - You can pass `profile_handler` and/or `metric_handler`, that will be embedded into common handler,
+     and will be available to call them
     - **api** endpoint by passing http.Handler from DI
 - [`echo.Module`](https://github.com/go-helium/echo) boilerplate that preconfigures echo.Engine for you
     - with custom Binder / Logger / Validator / ErrorHandler
