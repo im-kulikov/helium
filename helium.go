@@ -128,22 +128,25 @@ func CatchTrace(err error) {
 	// digging into the root of the problem
 	for {
 		var (
+			ok bool
 			v  = reflect.ValueOf(err)
 			fn reflect.Value
 		)
 
 		if v.Type().Kind() != reflect.Struct {
 			break
-		}
-
-		if !v.FieldByName("Reason").IsValid() || !v.FieldByName("Func").IsValid() {
+		} else if !v.FieldByName("Reason").IsValid() {
 			break
+		} else if v.FieldByName("Func").IsValid() {
+			fn = v.FieldByName("Func")
 		}
-
-		fn = v.FieldByName("Func")
-		err = v.FieldByName("Reason").Interface().(error)
 
 		fmt.Printf("Place: %#v\nReason: %s\n\n", fn, err)
+
+		if err, ok = v.FieldByName("Reason").Interface().(error); !ok {
+			err = v.Interface().(error)
+			break
+		}
 	}
 
 	panic(err)

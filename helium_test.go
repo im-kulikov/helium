@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"strconv"
 	"testing"
 
 	"bou.ke/monkey"
@@ -25,12 +26,22 @@ type (
 	heliumErrApp struct{}
 
 	Error string
+
+	TestError struct {
+		Index  int
+		Func   interface{}
+		Reason error
+	}
 )
 
 const ErrTest = Error("test")
 
 func (e Error) Error() string {
 	return string(e)
+}
+
+func (e TestError) Error() string {
+	return "error level: " + strconv.Itoa(e.Index)
 }
 
 func (h heliumApp) Run(ctx context.Context) error    { return nil }
@@ -249,6 +260,27 @@ func TestHelium(t *testing.T) {
 				CatchTrace(di.Invoke(func() error {
 					return context.DeadlineExceeded
 				}))
+			})
+
+			require.Empty(t, exitCode)
+		})
+
+		t.Run("should catch multi level errors", func(t *testing.T) {
+			var exitCode int
+
+			monkey.Patch(os.Exit, func(code int) { exitCode = code; panic(code) })
+			monkey.Patch(log.Fatal, func(...interface{}) { exitCode = 2; panic(exitCode) })
+
+			require.Panics(t, func() {
+				CatchTrace(TestError{
+					Index: 1,
+					Reason: TestError{
+						Index: 2,
+						Reason: TestError{
+							Index: 3,
+						},
+					},
+				})
 			})
 
 			require.Empty(t, exitCode)
