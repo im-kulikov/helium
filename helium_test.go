@@ -268,8 +268,8 @@ func TestHelium(t *testing.T) {
 		t.Run("should catch multi level errors", func(t *testing.T) {
 			var exitCode int
 
-			monkey.Patch(os.Exit, func(code int) { exitCode = code; panic(code) })
-			monkey.Patch(log.Fatal, func(...interface{}) { exitCode = 2; panic(exitCode) })
+			monkey.Patch(os.Exit, func(code int) { exitCode = code })
+			monkey.Patch(log.Fatal, func(...interface{}) { exitCode = 2 })
 
 			require.Panics(t, func() {
 				CatchTrace(TestError{
