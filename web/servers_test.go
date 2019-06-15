@@ -78,6 +78,22 @@ func TestServers(t *testing.T) {
 		})
 	})
 
+	t.Run("disabled http-server", func(t *testing.T) {
+		is := require.New(t)
+
+		v.SetDefault("test-api.disabled", true)
+
+		z, err := zap.NewDevelopment()
+		is.NoError(err)
+
+		l := logger.NewStdLogger(z)
+
+		testHTTPHandler(is)
+
+		serve := NewHTTPServer(v, "test-api", testHTTPHandler(is), l)
+		is.Nil(serve.Server)
+	})
+
 	t.Run("check api server", func(t *testing.T) {
 		t.Run("without config", func(t *testing.T) {
 			serve := NewAPIServer(v, l, nil)

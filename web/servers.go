@@ -102,6 +102,9 @@ func NewHTTPServer(v *viper.Viper, key string, h http.Handler, l logger.StdLogge
 	if h == nil {
 		l.Printf("Empty handler for %s server, skip", key)
 		return ServerResult{}
+	} else if v.GetBool(key + ".disabled") {
+		l.Printf("Server %s disabled", key)
+		return ServerResult{}
 	} else if !v.IsSet(key + ".address") {
 		l.Printf("Empty bind address for %s server, skip", key)
 		return ServerResult{}
