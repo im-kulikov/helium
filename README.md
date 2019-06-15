@@ -313,6 +313,16 @@ API_ADDRESS=string
 API_SHUTDOWN_TIMEOUT=duration
 ```
 
+**Possible options**:
+- `address` - (string) host and port
+- `disabled` - (bool) to disable server
+- `read_timeout` - (duration) is the maximum duration for reading the entire request, including the body
+- `read_header_timeout` - (duration) is the amount of time allowed to read request headers
+- `write_timeout` - (duration) is the maximum duration before timing out writes of the response
+- `idle_timeout` - (duration) is the maximum amount of time to wait for the next request when keep-alives are enabled
+- `max_header_bytes` - (int) controls the maximum number of bytes the server will read parsing the request header's keys and values, including the request line
+- `shutdown_timeout` - (duration) context timeout for stopping server 
+
 ## Workers Module
 
 Simple abstraction for control background jobs.
