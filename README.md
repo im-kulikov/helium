@@ -1,6 +1,7 @@
 # Helium
 
 ![Codecov](https://img.shields.io/codecov/c/github/im-kulikov/helium.svg?style=flat-square)
+[![Maintainability](https://api.codeclimate.com/v1/badges/01507c1d7c4b9649b1a7/maintainability)](https://codeclimate.com/github/im-kulikov/helium/maintainability)
 [![Build Status](https://travis-ci.com/im-kulikov/helium.svg?branch=master)](https://travis-ci.com/im-kulikov/helium)
 [![Report](https://goreportcard.com/badge/github.com/im-kulikov/helium)](https://goreportcard.com/report/github.com/im-kulikov/helium)
 [![GitHub release](https://img.shields.io/github/release/im-kulikov/helium.svg)](https://github.com/im-kulikov/helium)
