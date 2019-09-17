@@ -128,7 +128,7 @@ func TestServers(t *testing.T) {
 
 		// Randomize ports:
 		for name := range servers {
-			servers[name], err = net.Listen("tcp", ":0")
+			servers[name], err = net.Listen("tcp", "127.0.0.1:0")
 			assert.NoError(err)
 			assert.NoError(servers[name].Close())
 

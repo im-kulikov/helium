@@ -51,9 +51,16 @@ func NewWorkersGroup(wrks []*worker.Worker) *worker.Group {
 	return wg
 }
 
-// NewWorkers returns wrapped workers slice builded by config settings
-func NewWorkers(p Params) (Result, error) {
-	res := Result{}
+// NewWorkers returns wrapped workers slice created by config settings
+func NewWorkers(p Params) ([]*worker.Worker, error) {
+	switch {
+	case p.Config == nil:
+		return nil, ErrEmptyConfig
+	case p.Jobs == nil || len(p.Jobs) == 0:
+		return nil, ErrEmptyWorkers
+	}
+
+	workers := make([]*worker.Worker, 0, len(p.Jobs))
 	for name, job := range p.Jobs {
 		wrk, err := workerByConfig(options{
 			Viper:  p.Config,
@@ -72,9 +79,15 @@ func NewWorkers(p Params) (Result, error) {
 }
 
 func workerByConfig(opts options) (*worker.Worker, error) {
-	key := "workers." + opts.CfgKey
-	if !opts.Viper.IsSet(key) {
+	key := "workers." + opts.Name
+
+	switch {
+	case !opts.Viper.IsSet(key):
 		return nil, errors.Wrap(ErrMissingKey, key)
+	case opts.Viper.IsSet(key+".disabled") && opts.Viper.GetBool(key+".disabled"):
+		return worker.New(nopJob), nil
+	case opts.Job == nil:
+		return nil, errors.Wrap(ErrEmptyJob, opts.Name)
 	}
 
 	if opts.Viper.IsSet(key+".disabled") && opts.Viper.GetBool(key+".disabled") {
