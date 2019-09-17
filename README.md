@@ -343,12 +343,6 @@ workers:
   ##   ticker: 30s       # run job every 30s
   ##   timer: 30s        # run job every 30s and reset timer
   ##   cron: * * * * *   # run job by crontab specs, e.g. "* * * * *"
-  ##   lock:             # use lock by redis
-  ##     key: myKey
-  ##     ttl: 150s
-  ##     retry:          # retry get lock to run job
-  ##       count:   5
-  ##       timeout: 30s
 ```
 
 **Features**
