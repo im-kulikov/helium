@@ -14,7 +14,14 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type config = map[string]interface{}
+type (
+	config = map[string]interface{}
+
+	testLocker   struct{ locked int32 }
+	customLocker struct{ testLocker }
+)
+
+const errFailToApplyLockerSettings = Error("fail to apply locker settings")
 
 func mockedViper(cfg config) *viper.Viper {
 	v := viper.New()
@@ -28,18 +35,21 @@ func mockedViper(cfg config) *viper.Viper {
 	return v
 }
 
-type customLocker struct {
-	locked int32
+func (c *customLocker) Apply(key string, v *viper.Viper) (worker.Locker, error) {
+	if v.GetBool(key + ".lock.fail") {
+		return c, errFailToApplyLockerSettings
+	}
+	return c, nil
 }
 
-func (c *customLocker) Lock() error {
+func (c *testLocker) Lock() error {
 	if atomic.CompareAndSwapInt32(&c.locked, 0, 1) {
 		return nil
 	}
 	return errors.New("locked")
 }
 
-func (c *customLocker) Unlock() {
+func (c *testLocker) Unlock() {
 	atomic.StoreInt32(&c.locked, 0)
 }
 
@@ -135,7 +145,26 @@ func Test_workerByConfig(t *testing.T) {
 			Viper: mockedViper(config{}),
 		}},
 
-		{name: "good case",
+		{
+			name: "missing locker",
+			err:  ErrEmptyLocker,
+			args: options{
+				Name: "test",
+				Job:  nopJob,
+				Viper: mockedViper(config{
+					"disabled":    false,
+					"timer":       time.Millisecond,
+					"ticker":      time.Millisecond,
+					"cron":        "0 1 * * * *",
+					"immediately": true,
+					"lock":        true,
+				}),
+			},
+		},
+
+		{
+			name: "error when apply locker settings",
+			err:  errFailToApplyLockerSettings,
 			args: options{
 				Name:   "test",
 				Job:    nopJob,
@@ -146,6 +175,57 @@ func Test_workerByConfig(t *testing.T) {
 					"ticker":      time.Millisecond,
 					"cron":        "0 1 * * * *",
 					"immediately": true,
+					"lock":        true,
+					"lock.fail":   true,
+				}),
+			},
+		},
+
+		{
+			name: "good case",
+			args: options{
+				Name: "test",
+				Job:  nopJob,
+				Viper: mockedViper(config{
+					"disabled":    false,
+					"timer":       time.Millisecond,
+					"ticker":      time.Millisecond,
+					"cron":        "0 1 * * * *",
+					"immediately": true,
+				}),
+			},
+		},
+
+		{
+			name: "good case with custom locker",
+			args: options{
+				Name:   "test",
+				Job:    nopJob,
+				Locker: &customLocker{},
+				Viper: mockedViper(config{
+					"disabled":    false,
+					"timer":       time.Millisecond,
+					"ticker":      time.Millisecond,
+					"cron":        "0 1 * * * *",
+					"immediately": true,
+					"lock":        true,
+				}),
+			},
+		},
+
+		{
+			name: "good case with simple locker",
+			args: options{
+				Name:   "test",
+				Job:    nopJob,
+				Locker: &testLocker{},
+				Viper: mockedViper(config{
+					"disabled":    false,
+					"timer":       time.Millisecond,
+					"ticker":      time.Millisecond,
+					"cron":        "0 1 * * * *",
+					"immediately": true,
+					"lock":        true,
 				}),
 			},
 		},

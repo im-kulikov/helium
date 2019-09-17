@@ -13,6 +13,10 @@ const (
 	// ErrEmptyWorkers when workers not passed to params
 	ErrEmptyWorkers = Error("empty workers")
 
+	// ErrEmptyLocker when locker required,
+	// but not passed to params
+	ErrEmptyLocker = Error("empty locker")
+
 	// ErrEmptyJob when worker job is nil
 	ErrEmptyJob = Error("empty job")
 )

@@ -20,6 +20,11 @@ type (
 		Locker worker.Locker `optional:"true"`
 	}
 
+	// LockerSettings creates copy of locker and applies settings
+	LockerSettings interface {
+		Apply(key string, v *viper.Viper) (worker.Locker, error)
+	}
+
 	options struct {
 		Name   string
 		Job    worker.Job
@@ -103,8 +108,20 @@ func workerByConfig(opts options) (*worker.Worker, error) {
 	if opts.Viper.IsSet(key + ".immediately") {
 		w = w.SetImmediately(opts.Viper.GetBool(key + ".immediately"))
 	}
-	if opts.Locker != nil {
-		w = w.WithLock(opts.Locker)
+
+	if opts.Viper.IsSet(key + ".lock") {
+		if opts.Locker == nil {
+			return nil, errors.Wrap(ErrEmptyLocker, key)
+		} else if l, ok := opts.Locker.(LockerSettings); ok {
+			locker, err := l.Apply(key, opts.Viper)
+			if err != nil {
+				return nil, err
+			}
+
+			w = w.WithLock(locker)
+		} else {
+			w = w.WithLock(opts.Locker)
+		}
 	}
 
 	return w, nil
