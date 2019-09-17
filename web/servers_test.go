@@ -158,7 +158,7 @@ func TestServers(t *testing.T) {
 		err = di.Invoke(func(serve mserv.Server) {
 			assert.IsType(&mserv.MultiServer{}, serve)
 
-			serve.Start()
+			assert.NoError(serve.Start())
 		})
 		assert.NoError(err)
 

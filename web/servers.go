@@ -66,7 +66,6 @@ var (
 
 // NewMultiServer returns new multi servers group
 func NewMultiServer(params MultiServerParams) mserv.Server {
-	mserv.SetLogger(params.Logger)
 	return mserv.New(params.Servers...)
 }
 
@@ -114,7 +113,6 @@ func NewHTTPServer(v *viper.Viper, key string, h http.Handler, l logger.StdLogge
 	l.Printf("Create %s http server, bind address: %s", key, v.GetString(key+".address"))
 	return ServerResult{
 		Server: mserv.NewHTTPServer(
-			v.GetDuration(key+".shutdown_timeout"),
 			&http.Server{
 				Addr:              v.GetString(key + ".address"),
 				Handler:           h,
@@ -124,5 +122,6 @@ func NewHTTPServer(v *viper.Viper, key string, h http.Handler, l logger.StdLogge
 				IdleTimeout:       v.GetDuration(key + ".idle_timeout"),
 				MaxHeaderBytes:    v.GetInt(key + ".max_header_bytes"),
 			},
+			mserv.HTTPShutdownTimeout(v.GetDuration(key+".shutdown_timeout")),
 		)}
 }
