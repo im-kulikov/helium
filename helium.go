@@ -133,11 +133,11 @@ func CatchTrace(err error) {
 			fn reflect.Value
 		)
 
-		if v.Type().Kind() != reflect.Struct {
+		switch {
+		case v.Type().Kind() != reflect.Struct,
+			!v.FieldByName("Reason").IsValid():
 			break
-		} else if !v.FieldByName("Reason").IsValid() {
-			break
-		} else if v.FieldByName("Func").IsValid() {
+		case v.FieldByName("Func").IsValid():
 			fn = v.FieldByName("Func")
 		}
 

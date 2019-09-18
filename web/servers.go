@@ -66,7 +66,6 @@ var (
 
 // NewMultiServer returns new multi servers group
 func NewMultiServer(params MultiServerParams) mserv.Server {
-	mserv.SetLogger(params.Logger)
 	return mserv.New(params.Servers...)
 }
 
@@ -99,13 +98,14 @@ func NewAPIServer(v *viper.Viper, l logger.StdLogger, h http.Handler) ServerResu
 
 // NewHTTPServer creates http-server that will be embedded into multi-server
 func NewHTTPServer(v *viper.Viper, key string, h http.Handler, l logger.StdLogger) ServerResult {
-	if h == nil {
+	switch {
+	case h == nil:
 		l.Printf("Empty handler for %s server, skip", key)
 		return ServerResult{}
-	} else if v.GetBool(key + ".disabled") {
+	case v.GetBool(key + ".disabled"):
 		l.Printf("Server %s disabled", key)
 		return ServerResult{}
-	} else if !v.IsSet(key + ".address") {
+	case !v.IsSet(key + ".address"):
 		l.Printf("Empty bind address for %s server, skip", key)
 		return ServerResult{}
 	}
@@ -113,7 +113,6 @@ func NewHTTPServer(v *viper.Viper, key string, h http.Handler, l logger.StdLogge
 	l.Printf("Create %s http server, bind address: %s", key, v.GetString(key+".address"))
 	return ServerResult{
 		Server: mserv.NewHTTPServer(
-			v.GetDuration(key+".shutdown_timeout"),
 			&http.Server{
 				Addr:              v.GetString(key + ".address"),
 				Handler:           h,
@@ -123,5 +122,6 @@ func NewHTTPServer(v *viper.Viper, key string, h http.Handler, l logger.StdLogge
 				IdleTimeout:       v.GetDuration(key + ".idle_timeout"),
 				MaxHeaderBytes:    v.GetInt(key + ".max_header_bytes"),
 			},
+			mserv.HTTPShutdownTimeout(v.GetDuration(key+".shutdown_timeout")),
 		)}
 }

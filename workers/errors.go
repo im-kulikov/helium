@@ -7,8 +7,18 @@ const (
 	// ErrMissingKey when config key for worker is missing
 	ErrMissingKey = Error("missing worker key")
 
-	// ErrRedisClientNil when redis client not provided
-	ErrRedisClientNil = Error("gotten nil redis client for exclusive worker")
+	// ErrEmptyConfig when viper not passed to params
+	ErrEmptyConfig = Error("empty config")
+
+	// ErrEmptyWorkers when workers not passed to params
+	ErrEmptyWorkers = Error("empty workers")
+
+	// ErrEmptyLocker when locker required,
+	// but not passed to params
+	ErrEmptyLocker = Error("empty locker")
+
+	// ErrEmptyJob when worker job is nil
+	ErrEmptyJob = Error("empty job")
 )
 
 // Error converts constant error from string

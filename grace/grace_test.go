@@ -19,7 +19,9 @@ func TestGrace(t *testing.T) {
 	// waiting to run the goroutine and channel of signals
 	<-time.Tick(100 * time.Millisecond)
 
-	for _, sig := range []syscall.Signal{syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP} {
+	signals := []syscall.Signal{syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP}
+	for i := range signals {
+		sig := signals[i]
 		t.Run(fmt.Sprintf("should cancel context on %s signal", sig), func(t *testing.T) {
 			is := assert.New(t)
 
