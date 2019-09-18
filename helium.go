@@ -126,6 +126,7 @@ func CatchTrace(err error) {
 	}
 
 	// digging into the root of the problem
+loop:
 	for {
 		var (
 			ok bool
@@ -136,7 +137,7 @@ func CatchTrace(err error) {
 		switch {
 		case v.Type().Kind() != reflect.Struct,
 			!v.FieldByName("Reason").IsValid():
-			break
+			break loop
 		case v.FieldByName("Func").IsValid():
 			fn = v.FieldByName("Func")
 		}
