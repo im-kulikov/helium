@@ -6,7 +6,6 @@ require (
 	bou.ke/monkey v1.0.1
 	github.com/chapsuk/mserv v1.1.0
 	github.com/chapsuk/worker v1.0.0
-	github.com/davecgh/go-spew v1.1.1
 	github.com/pkg/errors v0.8.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/spf13/viper v1.4.0

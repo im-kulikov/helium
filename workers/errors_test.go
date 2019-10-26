@@ -2,16 +2,18 @@ package workers
 
 import (
 	"testing"
+
+	"github.com/im-kulikov/helium/internal"
 )
 
 func TestError_Error(t *testing.T) {
 	tests := []struct {
 		name string
-		e    Error
+		e    internal.Error
 		want string
 	}{
 		{name: "empty error"},
-		{name: "custom error", e: Error("custom"), want: "custom"},
+		{name: "custom error", e: internal.Error("custom"), want: "custom"},
 	}
 	for i := range tests {
 		tt := tests[i]

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/chapsuk/worker"
-	"github.com/davecgh/go-spew/spew"
+	"github.com/im-kulikov/helium/internal"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
@@ -21,7 +21,7 @@ type (
 	customLocker struct{ testLocker }
 )
 
-const errFailToApplyLockerSettings = Error("fail to apply locker settings")
+const errFailToApplyLockerSettings = internal.Error("fail to apply locker settings")
 
 func mockedViper(cfg config) *viper.Viper {
 	v := viper.New()
@@ -31,7 +31,7 @@ func mockedViper(cfg config) *viper.Viper {
 	for key, val := range cfg {
 		v.SetDefault("workers.test."+key, val)
 	}
-	spew.Dump(v.AllSettings())
+
 	return v
 }
 

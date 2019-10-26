@@ -1,27 +1,21 @@
 package workers
 
-// Error is constant error
-type Error string
+import "github.com/im-kulikov/helium/internal"
 
 const (
 	// ErrMissingKey when config key for worker is missing
-	ErrMissingKey = Error("missing worker key")
+	ErrMissingKey = internal.Error("missing worker key")
 
 	// ErrEmptyConfig when viper not passed to params
-	ErrEmptyConfig = Error("empty config")
+	ErrEmptyConfig = internal.Error("empty config")
 
 	// ErrEmptyWorkers when workers not passed to params
-	ErrEmptyWorkers = Error("empty workers")
+	ErrEmptyWorkers = internal.Error("empty workers")
 
 	// ErrEmptyLocker when locker required,
 	// but not passed to params
-	ErrEmptyLocker = Error("empty locker")
+	ErrEmptyLocker = internal.Error("empty locker")
 
 	// ErrEmptyJob when worker job is nil
-	ErrEmptyJob = Error("empty job")
+	ErrEmptyJob = internal.Error("empty job")
 )
-
-// Error converts constant error from string
-func (e Error) Error() string {
-	return string(e)
-}
