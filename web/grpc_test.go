@@ -42,7 +42,7 @@ func TestGRPCService(t *testing.T) {
 		require.EqualError(t, (&gRPC{server: grpc.NewServer()}).Start(), "listen: unknown network ")
 	})
 
-	t.Run("shoud ignore ErrServerStopped", func(t *testing.T) {
+	t.Run("should ignore ErrServerStopped", func(t *testing.T) {
 		lis, err := net.Listen("tcp", "127.0.0.1:0")
 		require.NoError(t, err)
 		require.NoError(t, lis.Close())
