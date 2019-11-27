@@ -226,7 +226,6 @@ func TestServers(t *testing.T) {
 		}
 
 		mod := module.Module{
-			{Constructor: newDefaultGRPCServer},
 			{Constructor: func() *zap.Logger { return l }},
 			{Constructor: func() *viper.Viper { return v }},
 			{Constructor: func() http.Handler { return testHTTPHandler(assert) }},
