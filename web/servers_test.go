@@ -5,15 +5,46 @@ import (
 	"net"
 	"net/http"
 	"testing"
+	"time"
 
-	"github.com/chapsuk/mserv"
-	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
+	"golang.org/x/net/context"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	gt "google.golang.org/grpc/test/grpc_testing"
 )
+
+type (
+	testGRPC struct {
+		gt.TestServiceServer
+	}
+
+	grpcResult struct {
+		dig.Out
+
+		Config string       `name:"grpc_config"`
+		Server *grpc.Server `name:"grpc_server"`
+	}
+)
+
+var (
+	_ = ListenerSkipErrors
+	_ = ListenerIgnoreError
+	_ = ListenerShutdownTimeout
+)
+
+func (t testGRPC) EmptyCall(context.Context, *gt.Empty) (*gt.Empty, error) {
+	return new(gt.Empty), nil
+}
+
+func (t testGRPC) UnaryCall(context.Context, *gt.SimpleRequest) (*gt.SimpleResponse, error) {
+	return nil, status.Error(codes.AlreadyExists, codes.AlreadyExists.String())
+}
 
 var expectResult = []byte("OK")
 
@@ -26,12 +57,17 @@ func testHTTPHandler(assert *require.Assertions) http.Handler {
 	return mux
 }
 
+func testGRPCServer(_ *require.Assertions) *grpc.Server {
+	s := grpc.NewServer()
+	gt.RegisterTestServiceServer(s, testGRPC{})
+	return s
+}
+
 func TestServers(t *testing.T) {
 	var (
-		z  = zap.L()
+		l  = zap.L()
 		di = dig.New()
 		v  = viper.New()
-		l  = logger.NewStdLogger(z)
 	)
 
 	t.Run("check pprof server", func(t *testing.T) {
@@ -40,7 +76,8 @@ func TestServers(t *testing.T) {
 				Viper:  v,
 				Logger: l,
 			}
-			serve := newProfileServer(params)
+			serve, err := newProfileServer(params)
+			require.NoError(t, err)
 			require.Nil(t, serve.Server)
 		})
 
@@ -50,9 +87,10 @@ func TestServers(t *testing.T) {
 				Viper:  v,
 				Logger: l,
 			}
-			serve := newProfileServer(params)
+			serve, err := newProfileServer(params)
+			require.NoError(t, err)
 			require.NotNil(t, serve.Server)
-			require.IsType(t, &mserv.HTTPServer{}, serve.Server)
+			require.IsType(t, &httpService{}, serve.Server)
 		})
 	})
 
@@ -62,7 +100,8 @@ func TestServers(t *testing.T) {
 				Viper:  v,
 				Logger: l,
 			}
-			serve := newMetricServer(params)
+			serve, err := newMetricServer(params)
+			require.NoError(t, err)
 			require.Nil(t, serve.Server)
 		})
 
@@ -72,9 +111,10 @@ func TestServers(t *testing.T) {
 				Viper:  v,
 				Logger: l,
 			}
-			serve := newMetricServer(params)
+			serve, err := newMetricServer(params)
+			require.NoError(t, err)
 			require.NotNil(t, serve.Server)
-			require.IsType(t, &mserv.HTTPServer{}, serve.Server)
+			require.IsType(t, &httpService{}, serve.Server)
 		})
 	})
 
@@ -86,32 +126,34 @@ func TestServers(t *testing.T) {
 		z, err := zap.NewDevelopment()
 		is.NoError(err)
 
-		l := logger.NewStdLogger(z)
-
 		testHTTPHandler(is)
 
-		serve := NewHTTPServer(v, "test-api", testHTTPHandler(is), l)
+		serve, err := NewHTTPServer(v, "test-api", testHTTPHandler(is), z)
+		require.NoError(t, err)
 		is.Nil(serve.Server)
 	})
 
 	t.Run("check api server", func(t *testing.T) {
 		t.Run("without config", func(t *testing.T) {
-			serve := NewAPIServer(v, l, nil)
+			serve, err := NewAPIServer(v, l, nil)
+			require.NoError(t, err)
 			require.Nil(t, serve.Server)
 		})
 
 		t.Run("without handler", func(t *testing.T) {
 			v.SetDefault("api.address", ":8090")
-			serve := NewAPIServer(v, l, nil)
+			serve, err := NewAPIServer(v, l, nil)
+			require.NoError(t, err)
 			require.Nil(t, serve.Server)
 		})
 
 		t.Run("should be ok", func(t *testing.T) {
 			assert := require.New(t)
 			v.SetDefault("api.address", ":8090")
-			serve := NewAPIServer(v, l, testHTTPHandler(assert))
+			serve, err := NewAPIServer(v, l, testHTTPHandler(assert))
+			assert.NoError(err)
 			assert.NotNil(serve.Server)
-			assert.IsType(&mserv.HTTPServer{}, serve.Server)
+			assert.IsType(&httpService{}, serve.Server)
 		})
 	})
 
@@ -123,6 +165,7 @@ func TestServers(t *testing.T) {
 				"pprof.address":   nil,
 				"metrics.address": nil,
 				"api.address":     nil,
+				"grpc.address":    nil,
 			}
 		)
 
@@ -131,14 +174,20 @@ func TestServers(t *testing.T) {
 			servers[name], err = net.Listen("tcp", "127.0.0.1:0")
 			assert.NoError(err)
 			assert.NoError(servers[name].Close())
-
 			v.SetDefault(name, servers[name].Addr().String())
 		}
 
 		mod := module.Module{
+			{Constructor: newDefaultGRPCServer},
+			{Constructor: func() *zap.Logger { return l }},
 			{Constructor: func() *viper.Viper { return v }},
-			{Constructor: func() logger.StdLogger { return l }},
 			{Constructor: func() http.Handler { return testHTTPHandler(assert) }},
+			{Constructor: func() grpcResult {
+				return grpcResult{
+					Config: "grpc",
+					Server: testGRPCServer(assert),
+				}
+			}},
 
 			{
 				Constructor: func() http.Handler { return testHTTPHandler(assert) },
@@ -155,30 +204,63 @@ func TestServers(t *testing.T) {
 
 		assert.NoError(module.Provide(di, mod))
 
-		err = di.Invoke(func(serve mserv.Server) {
-			assert.IsType(&mserv.MultiServer{}, serve)
-
+		err = di.Invoke(func(serve Service) {
+			assert.NotNil(serve)
 			assert.NoError(serve.Start())
+
+			for name, lis := range servers {
+				t.Run(name, func(t *testing.T) {
+					t.Logf("check for %q on %q", name, lis.Addr())
+
+					switch name {
+					case "grpc.address":
+						ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
+						defer cancel()
+
+						conn, err := grpc.DialContext(ctx, lis.Addr().String(),
+							grpc.WithBlock(),
+							grpc.WithInsecure())
+
+						assert.NoError(err)
+
+						cli := gt.NewTestServiceClient(conn)
+
+						{ // EmptyCall
+							res, err := cli.EmptyCall(ctx, &gt.Empty{})
+							assert.NoError(err)
+							assert.NotNil(res)
+						}
+
+						{ // UnaryCall
+							res, err := cli.UnaryCall(ctx, &gt.SimpleRequest{})
+							assert.Nil(res)
+							assert.Error(err)
+
+							st, ok := status.FromError(err)
+							assert.True(ok)
+							assert.Equal(codes.AlreadyExists, st.Code())
+							assert.Equal(codes.AlreadyExists.String(), st.Message())
+						}
+
+					default:
+						resp, err := http.Get("http://" + lis.Addr().String() + "/test")
+						assert.NoError(err)
+
+						defer func() {
+							err := resp.Body.Close()
+							assert.NoError(err)
+						}()
+
+						data, err := ioutil.ReadAll(resp.Body)
+						assert.NoError(err)
+
+						assert.Equal(expectResult, data)
+					}
+				})
+			}
+
+			assert.NoError(serve.Stop())
 		})
 		assert.NoError(err)
-
-		for name, lis := range servers {
-			{
-				t.Logf("check for %q on %q", name, lis.Addr())
-
-				resp, err := http.Get("http://" + lis.Addr().String() + "/test")
-				assert.NoError(err)
-
-				defer func() {
-					err := resp.Body.Close()
-					assert.NoError(err)
-				}()
-
-				data, err := ioutil.ReadAll(resp.Body)
-				assert.NoError(err)
-
-				assert.Equal(expectResult, data)
-			}
-		}
 	})
 }
