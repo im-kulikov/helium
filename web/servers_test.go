@@ -70,6 +70,33 @@ func TestServers(t *testing.T) {
 		v  = viper.New()
 	)
 
+	t.Run("gRPC default server", func(t *testing.T) {
+		t.Run("should skip empty gRPC default server", func(t *testing.T) {
+			res, err := newDefaultGRPCServer(grpcParams{})
+			require.Empty(t, res)
+			require.NoError(t, err)
+		})
+
+		t.Run("should creates with passed config", func(t *testing.T) {
+			v.Set("test_grpc.address", ":0")
+			v.Set("test_grpc.network", "test")
+			v.Set("test_grpc.skip_errors", true)
+
+			res, err := newDefaultGRPCServer(grpcParams{
+				Viper:  v,
+				Key:    "test_grpc",
+				Server: grpc.NewServer(),
+			})
+			require.NoError(t, err)
+
+			serv, ok := res.Server.(*gRPC)
+			require.True(t, ok)
+			require.True(t, serv.skipErrors)
+			require.Equal(t, serv.address, ":0")
+			require.Equal(t, serv.network, "test")
+		})
+	})
+
 	t.Run("check pprof server", func(t *testing.T) {
 		t.Run("without config", func(t *testing.T) {
 			params := profileParams{
@@ -122,15 +149,36 @@ func TestServers(t *testing.T) {
 		is := require.New(t)
 
 		v.SetDefault("test-api.disabled", true)
-
 		z, err := zap.NewDevelopment()
 		is.NoError(err)
 
 		testHTTPHandler(is)
 
 		serve, err := NewHTTPServer(v, "test-api", testHTTPHandler(is), z)
-		require.NoError(t, err)
+		is.NoError(err)
 		is.Nil(serve.Server)
+	})
+
+	t.Run("api should be configured", func(t *testing.T) {
+		is := require.New(t)
+
+		v.SetDefault("another-api.address", "test")
+		v.SetDefault("another-api.network", "test")
+		v.SetDefault("another-api.skip_errors", true)
+
+		z, err := zap.NewDevelopment()
+		is.NoError(err)
+
+		testHTTPHandler(is)
+
+		serve, err := NewHTTPServer(v, "another-api", testHTTPHandler(is), z)
+		is.NoError(err)
+
+		s, ok := serve.Server.(*httpService)
+		is.True(ok)
+		is.True(s.skipErrors)
+		is.Equal("test", s.address)
+		is.Equal("test", s.network)
 	})
 
 	t.Run("check api server", func(t *testing.T) {
