@@ -24,9 +24,9 @@ type (
 )
 
 const (
-	// ErrEmptyGRPC is raised when called NewGRPCService
+	// ErrEmptyGRPCServer is raised when called NewGRPCService
 	// or gRPC methods with empty grpc.Server.
-	ErrEmptyGRPC = internal.Error("empty gRPC server")
+	ErrEmptyGRPCServer = internal.Error("empty gRPC server")
 
 	// ErrEmptyGRPCAddress is raised when passed empty address to NewGRPCService.
 	ErrEmptyGRPCAddress = internal.Error("empty gRPC address")
@@ -65,7 +65,7 @@ func GRPCShutdownTimeout(v time.Duration) GRPCOption {
 // If something went wrong it returns an error.
 func NewGRPCService(serve *grpc.Server, opts ...GRPCOption) (Service, error) {
 	if serve == nil {
-		return nil, ErrEmptyGRPC
+		return nil, ErrEmptyGRPCServer
 	}
 
 	s := &gRPC{
@@ -96,7 +96,7 @@ func (g *gRPC) Start() error {
 	)
 
 	if g.server == nil {
-		return g.catch(ErrEmptyHTTPServer)
+		return g.catch(ErrEmptyGRPCServer)
 	} else if lis, err = net.Listen(g.network, g.address); err != nil {
 		return g.catch(err)
 	}
@@ -113,7 +113,7 @@ func (g *gRPC) Start() error {
 // Stop tries to stop gRPC service.
 func (g *gRPC) Stop() error {
 	if g.server == nil {
-		return g.catch(ErrEmptyHTTPServer)
+		return g.catch(ErrEmptyGRPCServer)
 	}
 
 	g.server.GracefulStop()
