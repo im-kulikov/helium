@@ -89,11 +89,11 @@ func TestServers(t *testing.T) {
 			})
 			require.NoError(t, err)
 
-			serv, ok := res.Server.(*gRPC)
+			serve, ok := res.Server.(*gRPC)
 			require.True(t, ok)
-			require.True(t, serv.skipErrors)
-			require.Equal(t, serv.address, ":0")
-			require.Equal(t, serv.network, "test")
+			require.True(t, serve.skipErrors)
+			require.Equal(t, serve.address, ":0")
+			require.Equal(t, serve.network, "test")
 		})
 	})
 
@@ -183,14 +183,14 @@ func TestServers(t *testing.T) {
 
 	t.Run("check api server", func(t *testing.T) {
 		t.Run("without config", func(t *testing.T) {
-			serve, err := NewAPIServer(v, l, nil)
+			serve, err := NewAPIServer(APIParams{Config: v, Logger: l})
 			require.NoError(t, err)
 			require.Nil(t, serve.Server)
 		})
 
 		t.Run("without handler", func(t *testing.T) {
 			v.SetDefault("api.address", ":8090")
-			serve, err := NewAPIServer(v, l, nil)
+			serve, err := NewAPIServer(APIParams{Config: v, Logger: l})
 			require.NoError(t, err)
 			require.Nil(t, serve.Server)
 		})
@@ -198,7 +198,11 @@ func TestServers(t *testing.T) {
 		t.Run("should be ok", func(t *testing.T) {
 			assert := require.New(t)
 			v.SetDefault("api.address", ":8090")
-			serve, err := NewAPIServer(v, l, testHTTPHandler(assert))
+			serve, err := NewAPIServer(APIParams{
+				Config:  v,
+				Logger:  l,
+				Handler: testHTTPHandler(assert),
+			})
 			assert.NoError(err)
 			assert.NotNil(serve.Server)
 			assert.IsType(&httpService{}, serve.Server)

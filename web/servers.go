@@ -122,8 +122,8 @@ func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
 }
 
 // NewAPIServer creates api server by http.Handler from DI container
-func NewAPIServer(v *viper.Viper, l *zap.Logger, h http.Handler) (ServerResult, error) {
-	return NewHTTPServer(v, "api", h, l)
+func NewAPIServer(p APIParams) (ServerResult, error) {
+	return NewHTTPServer(p.Config, "api", p.Handler, p.Logger)
 }
 
 // NewHTTPServer creates http-server that will be embedded into multi-server
