@@ -68,14 +68,16 @@ func (m *runner) Start() error {
 // Stop tries to stop services, logs every error,
 // and returns last error.
 func (m *runner) Stop() error {
-	var err error
+	var lastErr error
 	for i := range m.services {
 		if err := m.services[i].Stop(); err != nil {
+			lastErr = err
+
 			m.logger.Error("could not stop server",
 				zap.Int("index", i),
 				zap.Error(err))
 		}
 	}
 
-	return err
+	return lastErr
 }
