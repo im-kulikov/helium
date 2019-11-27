@@ -65,6 +65,7 @@ type (
 var (
 	// ServersModule of web base structs
 	ServersModule = module.Module{
+		{Constructor: newDefaultGRPCServer},
 		{Constructor: newProfileServer},
 		{Constructor: newMetricServer},
 		{Constructor: NewAPIServer},

@@ -275,20 +275,27 @@ Viper is a prioritized configuration registry. It maintains a set of configurati
 4. config file
 5. key/value store 6. defaults
 
+**Environments:**
+```
+<PREFIX>_CONFIG=/path/to/config
+<PREFIX>_CONFIG_TYPE=<format>
+```
+
 ## Web Module
 
-- bind - simple replacement for echo.Binder
-- validate - simple replacement for echo.Validate
-- logger - provides echo.Logger that pass calls to **zap.Logger**
-
-- `ServersModule` puts into container [multi-server](https://github.com/chapsuk/mserv):
+- `ServersModule` puts into container [web.Service](https://github.com/im-kulikov/web/service.go):
     - [pprof](https://golang.org/pkg/net/http/pprof/) endpoint
     - [metrics](https://github.com/prometheus/client_golang) enpoint (by Prometheus)
+    - [gRPC](https://github.com/golang/protobuf) endpoint
+    - [Listener](https://github.com/im-kulikov/web/listener.go) allows provide custom web service and run it in scope. 
     - You can pass `profile_handler` and/or `metric_handler`, that will be embedded into common handler,
      and will be available to call them
     - **api** endpoint by passing http.Handler from DI
 - [`echo.Module`](https://github.com/go-helium/echo) boilerplate that preconfigures echo.Engine for you
     - with custom Binder / Logger / Validator / ErrorHandler
+    - bind - simple replacement for echo.Binder
+    - validate - simple replacement for echo.Validate
+    - logger - provides echo.Logger that pass calls to **zap.Logger**
 
 Configuration:
 - yaml example
@@ -315,8 +322,10 @@ API_ADDRESS=string
 API_SHUTDOWN_TIMEOUT=duration
 ```
 
-**Possible options**:
+**Possible options for HTTP server**:
 - `address` - (string) host and port
+- `network` - (string) tcp, udp, etc
+- `skip_errors` - allows ignore all errors
 - `disabled` - (bool) to disable server
 - `read_timeout` - (duration) is the maximum duration for reading the entire request, including the body
 - `read_header_timeout` - (duration) is the amount of time allowed to read request headers
@@ -324,6 +333,121 @@ API_SHUTDOWN_TIMEOUT=duration
 - `idle_timeout` - (duration) is the maximum amount of time to wait for the next request when keep-alives are enabled
 - `max_header_bytes` - (int) controls the maximum number of bytes the server will read parsing the request header's keys and values, including the request line
 - `shutdown_timeout` - (duration) context timeout for stopping server 
+
+**Possible options for gRPC server**:
+- `address` - (string) host and port
+- `network` - (string) tcp, udp, etc
+- `skip_errors` - allows ignore all errors
+- `disabled` - (bool) to disable server
+- `shutdown_timeout` - (duration) context timeout for stopping server 
+
+**Listener example:**
+```go
+package my
+
+import (
+  "github.com/im-kulikov/helium/module"
+  "github.com/im-kulikov/helium/web"
+  "github.com/k-sone/snmpgo"
+  "github.com/spf13/viper"
+  "go.uber.org/zap"
+)
+
+type SNMPListener struct {
+  serve *snmpgo.TrapServer
+}
+
+var MyModule = module.Module{
+  {Constructor: NewSNMPServer}
+}
+
+func NewSNMPServer(v *viper.Viper, l *zap.Logger) (web.ServerResult, error) {
+  var res web.ServerResult
+
+  switch {
+  case v.GetBool("snmp.disabled"):
+		l.Warn("SNMP server is disabled")
+    return
+  case !v.IsSet("snmp.address"):
+    l.Warn("SNMP server shoud have address")
+    return
+
+  }
+
+  lis, err := snmpgo.NewTrapServer(snmpgo.ServerArguments{
+		LocalAddr: v.GetString("snmp.address"),
+  })
+  
+  // if something went wrong, return ServerResult and error:
+  if err != nil {
+    return res, err
+  }
+  
+  opts := []web.ListenerOption{
+    // If you want to ignore all errors
+    web.ListenerSkipErrors(),
+
+    // Ignore shutdown error
+    web.ListenerIgnoreErrors(errors.New("snmp: server shutdown")),
+  }
+  
+  res.serve, err = web.NewListener(lis, opts...)
+  return res, err
+}
+
+func (l *SNMPListener) ListenAndServe() error {
+  return l.serve.Serve(l) // because SNMPListener is TrapHandler
+}
+
+func (l *SNMPListener) Shutdown(context.Context) error {
+	return l.server.Close()
+}
+
+func (l *SNMPListener) OnTRAP(trap *snmpgo.TrapRequest) {
+  // do something with received message
+}
+```
+
+**Use default gRPC example:**
+```go
+package my
+
+import (
+  "github.com/im-kulikov/helium/module"
+  "github.com/im-kulikov/helium/web"
+  "go.uber.org/dig"
+  "go.uber.org/zap"
+  "google.golang.org/grpc"
+)
+
+type gRPCResult struct {
+    dig.Out
+    
+    Key    string       `name:"grpc_config"`
+    Server *grpc.Server `name:"grpc_server"`
+}
+
+var MyModule = module.Module{
+  {Constructor: NewDefaultGRPCServer}
+}
+
+// NewDefaultGRPCServer returns gRPCResult that would be used
+// to create gRPC Service and run it with other web-services.
+//
+// See web.newDefaultGRPCServer for more information.
+func NewDefaultGRPCServer() gRPCResult {
+  return gRPCResult{
+    // config key that would be used
+    // For exmpale :
+    // - <key>.address
+    // - <key>.network
+    // - <key>.shutdown_timeout
+    // - etc
+    Key:    "grpc",
+    Server: grpc.NewServer(),
+  }
+}
+```
 
 ## Workers Module
 
