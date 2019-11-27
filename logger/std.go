@@ -21,7 +21,7 @@ func (s stdLogger) Print(v ...interface{}) {
 	s.Info(v...)
 }
 
-// Printf uses fmt.Sprintf to log a templated message.
+// Printf uses fmt.Sprintf to log a formatted message.
 func (s stdLogger) Printf(format string, v ...interface{}) {
 	s.Infof(format, v...)
 }
