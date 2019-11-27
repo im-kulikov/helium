@@ -358,7 +358,7 @@ type SNMPListener struct {
 }
 
 var MyModule = module.Module{
-  {Constructor: NewSNMPServer}
+  {Constructor: NewSNMPServer},
 }
 
 func NewSNMPServer(v *viper.Viper, l *zap.Logger) (web.ServerResult, error) {
@@ -428,7 +428,7 @@ type gRPCResult struct {
 }
 
 var MyModule = module.Module{
-  {Constructor: NewDefaultGRPCServer}
+  {Constructor: NewDefaultGRPCServer},
 }
 
 // NewDefaultGRPCServer returns gRPCResult that would be used
