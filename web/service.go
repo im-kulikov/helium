@@ -39,7 +39,6 @@ func New(log *zap.Logger, services ...Service) (Service, error) {
 
 	for i := range services {
 		if services[i] == nil {
-			log.Warn("ignore service", zap.Int("index", i))
 			continue
 		}
 
