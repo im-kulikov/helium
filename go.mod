@@ -6,14 +6,14 @@ require (
 	bou.ke/monkey v1.0.1
 	github.com/chapsuk/worker v1.0.0
 	github.com/pkg/errors v0.8.1
-	github.com/prometheus/client_golang v1.1.0
-	github.com/spf13/viper v1.4.0
+	github.com/prometheus/client_golang v1.2.1
+	github.com/spf13/viper v1.6.0
 	github.com/stretchr/testify v1.4.0
-	go.uber.org/atomic v1.4.0
-	go.uber.org/dig v1.7.0
-	go.uber.org/zap v1.10.0
-	golang.org/x/net v0.0.0-20190613194153-d28f0bde5980
-	google.golang.org/grpc v1.21.0
+	go.uber.org/atomic v1.5.1
+	go.uber.org/dig v1.8.0
+	go.uber.org/zap v1.13.0
+	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	google.golang.org/grpc v1.25.1
 )
 
 // Blocked in Russia
