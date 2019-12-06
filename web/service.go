@@ -1,6 +1,8 @@
 package web
 
 import (
+	"os"
+
 	"github.com/im-kulikov/helium/internal"
 	"go.uber.org/zap"
 )
@@ -26,6 +28,8 @@ const (
 	ErrEmptyServices = internal.Error("empty services")
 )
 
+var fatal = os.Exit
+
 // New gets logger and services to create multiple service runner.
 func New(log *zap.Logger, services ...Service) (Service, error) {
 	if log == nil {
@@ -39,7 +43,6 @@ func New(log *zap.Logger, services ...Service) (Service, error) {
 
 	for i := range services {
 		if services[i] == nil {
-			log.Warn("ignore service", zap.Int("index", i))
 			continue
 		}
 

@@ -56,6 +56,7 @@ type (
 	grpcParams struct {
 		dig.In
 
+		Logger *zap.Logger
 		Viper  *viper.Viper
 		Key    string       `name:"grpc_config" optional:"true"`
 		Server *grpc.Server `name:"grpc_server" optional:"true"`
@@ -99,26 +100,7 @@ func newMetricServer(p metricParams) (ServerResult, error) {
 }
 
 func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
-	if p.Server == nil || p.Viper.IsSet(p.Key+".disabled") {
-		return ServerResult{}, nil
-	}
-
-	options := []GRPCOption{
-		GRPCListenAddress(p.Viper.GetString(p.Key + ".address")),
-		GRPCShutdownTimeout(p.Viper.GetDuration(p.Key + ".shutdown_timeout")),
-	}
-
-	if p.Viper.GetBool(p.Key + ".skip_errors") {
-		options = append(options, GRPCSkipErrors())
-	}
-
-	if p.Viper.IsSet(p.Key + ".network") {
-		options = append(options, GRPCListenNetwork(p.Viper.GetString(p.Key+".network")))
-	}
-
-	serve, err := NewGRPCService(p.Server, options...)
-
-	return ServerResult{Server: serve}, err
+	return NewGRPCServer(p.Viper, p.Key, p.Server, p.Logger)
 }
 
 // NewAPIServer creates api server by http.Handler from DI container
@@ -126,9 +108,54 @@ func NewAPIServer(p APIParams) (ServerResult, error) {
 	return NewHTTPServer(p.Config, "api", p.Handler, p.Logger)
 }
 
+// NewGRPCServer creates gRPC server that will be embedded info multi-server.
+func NewGRPCServer(v *viper.Viper, key string, s *grpc.Server, l *zap.Logger) (ServerResult, error) {
+	switch {
+	case l == nil:
+		return ServerResult{}, ErrEmptyLogger
+	case key == "" || v == nil:
+		l.Info("Empty config or key for gRPC server, skip")
+		return ServerResult{}, nil
+	case s == nil:
+		l.Info("Empty server, skip",
+			zap.String("name", key))
+		return ServerResult{}, nil
+	case v.IsSet(key + ".disabled"):
+		l.Info("Disabled, skip",
+			zap.String("name", key))
+		return ServerResult{}, nil
+	}
+
+	options := []GRPCOption{
+		GRPCListenAddress(v.GetString(key + ".address")),
+		GRPCShutdownTimeout(v.GetDuration(key + ".shutdown_timeout")),
+	}
+
+	if v.GetBool(key + ".skip_errors") {
+		options = append(options, GRPCSkipErrors())
+	}
+
+	if v.IsSet(key + ".network") {
+		options = append(options, GRPCListenNetwork(v.GetString(key+".network")))
+	}
+
+	serve, err := NewGRPCService(s, options...)
+
+	l.Info("Creates gRPC server",
+		zap.String("name", key),
+		zap.String("address", v.GetString(key+".address")))
+
+	return ServerResult{Server: serve}, err
+}
+
 // NewHTTPServer creates http-server that will be embedded into multi-server
 func NewHTTPServer(v *viper.Viper, key string, h http.Handler, l *zap.Logger) (ServerResult, error) {
 	switch {
+	case l == nil:
+		return ServerResult{}, ErrEmptyLogger
+	case key == "" || v == nil:
+		l.Info("Empty config or key for http server, skip")
+		return ServerResult{}, nil
 	case h == nil:
 		l.Info("Empty handler, skip",
 			zap.String("name", key))

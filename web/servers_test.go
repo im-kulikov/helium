@@ -71,8 +71,30 @@ func TestServers(t *testing.T) {
 	)
 
 	t.Run("gRPC default server", func(t *testing.T) {
-		t.Run("should skip empty gRPC default server", func(t *testing.T) {
+		t.Run("should skip for disabled gRPC server", func(t *testing.T) {
+			g := grpc.NewServer()
+			v.Set("test-gRPC.disabled", true)
+			res, err := NewGRPCServer(v, "test-gRPC", g, l)
+			require.Empty(t, res)
+			require.NoError(t, err)
+			require.Empty(t, res)
+		})
+
+		t.Run("should skip for empty gRPC server", func(t *testing.T) {
+			res, err := NewGRPCServer(v, "test-gRPC", nil, l)
+			require.Empty(t, res)
+			require.NoError(t, err)
+			require.Empty(t, res)
+		})
+
+		t.Run("should fail for empty logger", func(t *testing.T) {
 			res, err := newDefaultGRPCServer(grpcParams{})
+			require.Empty(t, res)
+			require.EqualError(t, err, ErrEmptyLogger.Error())
+		})
+
+		t.Run("should skip empty gRPC default server", func(t *testing.T) {
+			res, err := newDefaultGRPCServer(grpcParams{Logger: l})
 			require.Empty(t, res)
 			require.NoError(t, err)
 		})
@@ -84,6 +106,7 @@ func TestServers(t *testing.T) {
 
 			res, err := newDefaultGRPCServer(grpcParams{
 				Viper:  v,
+				Logger: l,
 				Key:    "test_grpc",
 				Server: grpc.NewServer(),
 			})
@@ -98,6 +121,13 @@ func TestServers(t *testing.T) {
 	})
 
 	t.Run("check pprof server", func(t *testing.T) {
+		t.Run("without logger", func(t *testing.T) {
+			params := profileParams{Viper: v}
+			serve, err := newProfileServer(params)
+			require.EqualError(t, err, ErrEmptyLogger.Error())
+			require.Nil(t, serve.Server)
+		})
+
 		t.Run("without config", func(t *testing.T) {
 			params := profileParams{
 				Viper:  v,
@@ -142,6 +172,28 @@ func TestServers(t *testing.T) {
 			require.NoError(t, err)
 			require.NotNil(t, serve.Server)
 			require.IsType(t, &httpService{}, serve.Server)
+		})
+	})
+
+	t.Run("empty viper or config key for http-server", func(t *testing.T) {
+		is := require.New(t)
+
+		v.SetDefault("test-api.disabled", true)
+		z, err := zap.NewDevelopment()
+		is.NoError(err)
+
+		testHTTPHandler(is)
+
+		t.Run("empty key", func(t *testing.T) {
+			serve, err := NewHTTPServer(v, "", testHTTPHandler(is), z)
+			require.NoError(t, err)
+			require.Nil(t, serve.Server)
+		})
+
+		t.Run("empty viper", func(t *testing.T) {
+			serve, err := NewHTTPServer(nil, "test-key", testHTTPHandler(is), z)
+			require.NoError(t, err)
+			require.Nil(t, serve.Server)
 		})
 	})
 

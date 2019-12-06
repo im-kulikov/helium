@@ -3,10 +3,11 @@ package web
 import (
 	"crypto/tls"
 	"errors"
-	"github.com/stretchr/testify/require"
 	"net"
 	"net/http"
 	"testing"
+
+	"github.com/stretchr/testify/require"
 )
 
 func TestHTTPService(t *testing.T) {
