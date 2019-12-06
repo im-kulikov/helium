@@ -103,7 +103,8 @@ func (g *gRPC) Start() error {
 
 	go func() {
 		if err := g.catch(g.server.Serve(lis)); err != nil {
-			panic(fmt.Sprintf("could not start grpc.Server: %v", err))
+			fmt.Printf("could not start grpc.Server: %v\n", err)
+			fatal(2)
 		}
 	}()
 

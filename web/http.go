@@ -115,7 +115,8 @@ func (s *httpService) Start() error {
 
 		// ignores known error
 		if err = s.catch(err); err != nil {
-			panic(fmt.Sprintf("could not start http.Server: %v", err))
+			fmt.Printf("could not start http.Server: %v\n", err)
+			fatal(2)
 		}
 	}()
 

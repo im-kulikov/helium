@@ -81,7 +81,8 @@ func (l *listener) Start() error {
 
 	go func() {
 		if err := l.catch(l.server.ListenAndServe()); err != nil {
-			panic(fmt.Sprintf("could not start Listener: %v", err))
+			fmt.Printf("could not start Listener: %v\n", err)
+			fatal(2)
 		}
 	}()
 

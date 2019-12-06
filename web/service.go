@@ -1,6 +1,8 @@
 package web
 
 import (
+	"os"
+
 	"github.com/im-kulikov/helium/internal"
 	"go.uber.org/zap"
 )
@@ -25,6 +27,8 @@ const (
 	// ErrEmptyServices is raised when empty services passed into New function.
 	ErrEmptyServices = internal.Error("empty services")
 )
+
+var fatal = os.Exit
 
 // New gets logger and services to create multiple service runner.
 func New(log *zap.Logger, services ...Service) (Service, error) {
