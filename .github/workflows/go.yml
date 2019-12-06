@@ -39,5 +39,9 @@ jobs:
     - name: Tests
       run: go test -coverprofile=coverage.txt -covermode=atomic ./...
 
-    - name: Codecov
-      run: bash <(curl -s https://codecov.io/bash)
+    - name: Upload coverage to Codecov
+      uses: codecov/codecov-action@v1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }} #required
+        file: ./coverage.txt 
+        fail_ci_if_error: true #optional (default = false)
