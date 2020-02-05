@@ -7,6 +7,7 @@
 [![GitHub release](https://img.shields.io/github/release/im-kulikov/helium.svg)](https://github.com/im-kulikov/helium)
 ![GitHub](https://img.shields.io/github/license/im-kulikov/helium.svg?style=popout)
 [![Sourcegraph](https://sourcegraph.com/github.com/im-kulikov/helium/-/badge.svg)](https://sourcegraph.com/github.com/im-kulikov/helium?badge)
+[![Dependabot Status](https://api.dependabot.com/badges/status?host=github&repo=im-kulikov/helium)](https://dependabot.com)
 [![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fim-kulikov%2Fhelium.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fim-kulikov%2Fhelium?ref=badge_shield)
 
 <img src="./.github/helium.jpg" width="350" alt="logo">
