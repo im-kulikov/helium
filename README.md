@@ -59,6 +59,24 @@ It contains the following components for rapid prototyping of your projects:
 - Web - [see more](#web-module)
 - Workers - are tools to run goroutines and do arbitrary work on a schedule along with a mechanism to safely stop each one. Based on [chapsuk/worker](https://github.com/chapsuk/worker)
 
+### Defaults and preconfigure
+
+*Helium* allows passing `defaults` (`settings.Defaults`) handler, which allows configuring application before it will be run.
+
+**Example:**
+```go
+helium.New(&helium.Settings{
+    Name: "Abc",
+    Defaults: func(di *dig.Container) error {
+        return di.Invoke(func(cfg *settings.Core) {
+            cfg.Name = "TEST_NAME"
+            cfg.BuildTime = "TEST_BUILD_TIME"
+            cfg.BuildVersion = "TEST_BUILD_VERSION"
+        })
+    },
+})
+``` 
+
 ### Logger module
 
 Module provides you with the following things:
