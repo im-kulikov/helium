@@ -74,10 +74,25 @@ func TestHelium(t *testing.T) {
 
 		h, err := New(&Settings{
 			Name: "Abc",
+			Defaults: func(di *dig.Container) error {
+				err := di.Invoke(func(cfg *settings.Core) {
+					cfg.Name = "TEST_NAME"
+					cfg.BuildTime = "TEST_BUILD_TIME"
+					cfg.BuildVersion = "TEST_BUILD_VERSION"
+				})
+
+				require.NoError(t, err)
+
+				return err
+			},
 		}, module.Module{
 			{Constructor: func(cfg *settings.Core) App {
 				require.Equal(t, tmpFile.Name(), cfg.File)
 				require.Equal(t, "toml", cfg.Type)
+
+				require.Equal(t, "TEST_NAME", cfg.Name)
+				require.Equal(t, "TEST_BUILD_TIME", cfg.BuildTime)
+				require.Equal(t, "TEST_BUILD_VERSION", cfg.BuildVersion)
 				return heliumApp{}
 			}},
 		}.Append(grace.Module, settings.Module, logger.Module))

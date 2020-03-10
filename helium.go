@@ -36,6 +36,7 @@ type (
 		Prefix       string
 		BuildTime    string
 		BuildVersion string
+		Defaults     settings.Defaults
 	}
 )
 
@@ -83,7 +84,11 @@ func New(cfg *Settings, mod module.Module) (*Helium, error) {
 		return nil, err
 	}
 
-	return h, nil
+	if cfg == nil || cfg.Defaults == nil {
+		return h, nil
+	}
+
+	return h, cfg.Defaults(h.di)
 }
 
 // Invoke dependencies from DI container
