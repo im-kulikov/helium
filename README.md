@@ -76,6 +76,36 @@ helium.New(&helium.Settings{
 })
 ``` 
 
+### Service module
+
+*Helium* provide primitive for runnable services. That can be web-servers, workers, etc.
+
+```go
+type Service {
+    // runnable interface
+    Start(context.Context) error
+    Stop()
+
+    Name() string 
+}
+```
+
+You can pass into DI group of services and use them in `app.Run` method, for example:
+
+```go
+func (a *app) Run(ctx context.Context, svc service.Group) error {
+    if err := svc.Start(ctx); err != nil {
+        return err
+    }
+    
+    <-ctx.Done()
+
+    svc.Stop()
+    
+    return nil
+}
+```
+
 ### Logger module
 
 Module provides you with the following things:
