@@ -74,16 +74,11 @@ func TestHelium(t *testing.T) {
 
 		h, err := New(&Settings{
 			Name: "Abc",
-			Defaults: func(di *dig.Container) error {
-				err := di.Invoke(func(cfg *settings.Core) {
-					cfg.Name = "TEST_NAME"
-					cfg.BuildTime = "TEST_BUILD_TIME"
-					cfg.BuildVersion = "TEST_BUILD_VERSION"
-				})
-
-				require.NoError(t, err)
-
-				return err
+			Defaults: func(cfg *settings.Core) {
+				require.NotNil(t, cfg)
+				cfg.Name = "TEST_NAME"
+				cfg.BuildTime = "TEST_BUILD_TIME"
+				cfg.BuildVersion = "TEST_BUILD_VERSION"
 			},
 		}, module.Module{
 			{Constructor: func(cfg *settings.Core) App {

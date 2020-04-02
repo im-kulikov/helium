@@ -8,7 +8,7 @@ import (
 type (
 	// Defaults is callback that allows to setup application before run.
 	// Helium calls `defaults` handler at the end in `New` method.
-	Defaults func(di *dig.Container) error
+	Defaults interface{}
 
 	// Core configuration
 	Core struct {
@@ -20,6 +20,12 @@ type (
 		BuildVersion string
 	}
 )
+
+func DIProvider(di *dig.Container) *module.Provider {
+	return &module.Provider{
+		Constructor: func() *dig.Container { return di },
+	}
+}
 
 // Provider - wrap app config to provider
 func (a *Core) Provider() *module.Provider {

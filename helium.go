@@ -78,6 +78,7 @@ func New(cfg *Settings, mod module.Module) (*Helium, error) {
 		appVersion.Store(cfg.BuildVersion)
 
 		mod = append(mod, core.Provider())
+		mod = append(mod, settings.DIProvider(h.di))
 	}
 
 	if err := module.Provide(h.di, mod); err != nil {
@@ -88,7 +89,7 @@ func New(cfg *Settings, mod module.Module) (*Helium, error) {
 		return h, nil
 	}
 
-	return h, cfg.Defaults(h.di)
+	return h, h.di.Invoke(cfg.Defaults)
 }
 
 // Invoke dependencies from DI container
