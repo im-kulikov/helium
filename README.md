@@ -108,6 +108,84 @@ func (a *app) Run(ctx context.Context, svc service.Group) error {
 }
 ```
 
+To provide single service:
+
+```go
+package some_pkg
+
+import (
+    "context"
+
+    "go.uber.org/dig"
+    "github.com/im-kulikov/helium/service"
+)
+
+type OutParams struct {
+    dig.Out
+    Service service.Service `group:"services"`
+}
+
+type testWorker struct {
+    name string
+}
+
+func (w *testWorker) Start(context.Context) error { return nil }
+func (w *testWorker) Stop() { }
+func (w *testWorker) Name() string { return w.name }
+
+func NewSingleOutService() OutParams {
+    return OutParams{ Service: &testWorker{name: "worker1"} }
+}
+
+// or using dig.Group("services")
+// module.New(NewSingService, dig.Group("services")
+func NewSingService() service.Service {
+    return &testWorker{name: "worker1"}
+}
+```
+
+To provide multiple services:
+
+```go
+package some_pkg
+
+import (
+    "context"
+
+    "go.uber.org/dig"
+    "github.com/im-kulikov/helium/service"
+)
+
+// for multiple services use `group:"services,flatten"`
+type OutParams struct {
+    dig.Out
+    Service []service.Service `group:"services,flatten"`
+}
+
+type testWorker struct {
+    name string
+}
+
+func (w *testWorker) Start(context.Context) error { return nil }
+func (w *testWorker) Stop() { }
+func (w *testWorker) Name() string { return w.name }
+
+func NewMultipleOut() OutParams {
+    return OutParams{
+        Service: []service.Service{
+            &testWorker{name: "worker1"},
+            &testWorker{name: "worker2"},
+        },
+    }
+}
+
+// or using dig.Group("services,flatten")
+// module.New(NewMultiple, dig.Group("services,flatten"))
+func NewMultiple() []service.Service {
+    return &testWorker{name: "worker1"}
+}
+```
+
 ### Logger module
 
 Module provides you with the following things:
