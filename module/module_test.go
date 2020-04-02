@@ -9,8 +9,22 @@ import (
 
 func TestModule(t *testing.T) {
 	t.Run("Provider", func(t *testing.T) {
+		t.Run("combining multiple modules", func(t *testing.T) {
+			var (
+				c = 10
+				m []Module
+			)
+
+			for i := 0; i < c; i++ {
+				m = append(m, New(new(Provider)))
+			}
+
+			result := Combine(m...)
+			require.Len(t, result, c)
+		})
+
 		t.Run("should return error on empty provider", func(t *testing.T) {
-			var dic = dig.New()
+			dic := dig.New()
 
 			p := new(Provider)
 			err := Provide(dic, Module{p})
@@ -18,7 +32,7 @@ func TestModule(t *testing.T) {
 		})
 
 		t.Run("should return error if provider constructor func has to many similar returns values", func(t *testing.T) {
-			var dic = dig.New()
+			dic := dig.New()
 
 			mod := New(func() (int, int, error) {
 				return 0, 0, nil
@@ -30,7 +44,7 @@ func TestModule(t *testing.T) {
 		})
 
 		t.Run("should return error if provider constructor func has only error field", func(t *testing.T) {
-			var dic = dig.New()
+			dic := dig.New()
 
 			mod := New(func() error {
 				return nil
@@ -42,7 +56,7 @@ func TestModule(t *testing.T) {
 		})
 
 		t.Run("should not return errors on correct provider", func(t *testing.T) {
-			var dic = dig.New()
+			dic := dig.New()
 
 			mod := New(func() (int, error) {
 				return 0, nil
