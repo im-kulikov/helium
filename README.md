@@ -16,6 +16,8 @@
 
 * [Why Helium](#why-helium)
 * [About Helium and modules](#about-helium-and-modules)
+    * [Preconfigure](#defaults-and-preconfigure)
+    * [Services](#service-module)
     * [Logger](#logger-module)
     * [NATS](#nats-module)
     * [PostgreSQL](#postgresql-module)
