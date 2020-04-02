@@ -21,6 +21,7 @@ type (
 	}
 )
 
+// DIProvider wrap di into provider
 func DIProvider(di *dig.Container) *module.Provider {
 	return &module.Provider{
 		Constructor: func() *dig.Container { return di },
