@@ -5,6 +5,7 @@ import (
 
 	"github.com/chapsuk/worker"
 	"github.com/im-kulikov/helium/module"
+	"github.com/im-kulikov/helium/service"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
@@ -20,6 +21,20 @@ type (
 		Locker worker.Locker `optional:"true"`
 	}
 
+	// Out params for DI
+	Out struct {
+		dig.Out
+
+		Workers []service.Service `group:"services,flatten"`
+	}
+
+	wrapper struct {
+		*worker.Worker
+
+		name string
+		done chan struct{}
+	}
+
 	// LockerSettings creates copy of locker and applies settings
 	LockerSettings interface {
 		Apply(key string, v *viper.Viper) (worker.Locker, error)
@@ -33,39 +48,47 @@ type (
 	}
 )
 
-// Module of workers
-var Module = module.Module{
-	{Constructor: NewWorkers},
-	{Constructor: NewWorkersGroup},
-}
+var (
+	_ = Module // prevent unused
+
+	// Module of workers
+	Module = module.New(NewWorkers)
+)
 
 func nopJob(_ context.Context) {}
 
-// NewWorkersGroup returns workers group with injected workers
-func NewWorkersGroup(workers []*worker.Worker) *worker.Group {
-	var items = make([]*worker.Worker, 0, len(workers))
+// Start wrapped worker
+func (w *wrapper) Start(ctx context.Context) error {
+	go func() {
+		w.Worker.Run(ctx)
+		close(w.done)
+	}()
 
-	for i := range workers {
-		if workers[i] != nil {
-			items = append(items, workers[i])
-		}
-	}
+	return nil
+}
 
-	wg := worker.NewGroup()
-	wg.Add(items...)
-	return wg
+// Stop wrapped worker
+func (w *wrapper) Stop() {
+	<-w.done
+}
+
+// Name of the wrapped worker
+func (w *wrapper) Name() string {
+	return w.name
 }
 
 // NewWorkers returns wrapped workers slice created by config settings
-func NewWorkers(p Params) ([]*worker.Worker, error) {
+func NewWorkers(p Params) (Out, error) {
+	var result Out
+
 	switch {
 	case p.Config == nil:
-		return nil, ErrEmptyConfig
+		return result, ErrEmptyConfig
 	case p.Jobs == nil || len(p.Jobs) == 0:
-		return nil, ErrEmptyWorkers
+		return result, ErrEmptyWorkers
 	}
 
-	workers := make([]*worker.Worker, 0, len(p.Jobs))
+	result.Workers = make([]service.Service, 0, len(p.Jobs))
 	for name, job := range p.Jobs {
 		wrk, err := workerByConfig(options{
 			Viper:  p.Config,
@@ -75,11 +98,17 @@ func NewWorkers(p Params) ([]*worker.Worker, error) {
 		})
 		if err != nil {
 			// all or nothing
-			return nil, err
+			return result, err
 		}
-		workers = append(workers, wrk)
+
+		result.Workers = append(result.Workers, &wrapper{
+			Worker: wrk,
+			name:   name,
+			done:   make(chan struct{}),
+		})
 	}
-	return workers, nil
+
+	return result, nil
 }
 
 func workerByConfig(opts options) (*worker.Worker, error) {

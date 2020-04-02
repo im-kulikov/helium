@@ -2,16 +2,21 @@ package workers
 
 import (
 	"context"
-	"reflect"
 	"sync/atomic"
 	"testing"
 	"time"
 
 	"github.com/chapsuk/worker"
 	"github.com/im-kulikov/helium/internal"
+	"github.com/im-kulikov/helium/module"
+	"github.com/im-kulikov/helium/service"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/dig"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+	"go.uber.org/zap/zaptest"
 )
 
 type (
@@ -19,9 +24,23 @@ type (
 
 	testLocker   struct{ locked int32 }
 	customLocker struct{ testLocker }
+
+	hook struct{ called int }
 )
 
 const errFailToApplyLockerSettings = internal.Error("fail to apply locker settings")
+
+func (h *hook) Caller(entry zapcore.Entry) error {
+	if entry.Message == "run service" {
+		h.called++
+	}
+
+	if entry.Message == "stop service" {
+		h.called++
+	}
+
+	return nil
+}
 
 func mockedViper(cfg config) *viper.Viper {
 	v := viper.New()
@@ -100,37 +119,33 @@ func TestNewWorkers(t *testing.T) {
 				return
 			}
 
-			require.Len(t, got, tt.len)
-			require.NotPanics(t, func() {
-				for i := range got {
-					got[i].Run(context.Background())
-				}
+			require.Len(t, got.Workers, tt.len)
+
+			t.Run(tt.name+": check that all workers provided", func(t *testing.T) {
+				di := dig.New()
+				h := new(hook)
+
+				// provide service.Module
+				require.NoError(t, module.Provide(di, service.Module))
+				// provide service workers
+				require.NoError(t, di.Provide(func() Out { return got }))
+				// provide testing logger
+				require.NoError(t, di.Provide(func() *zap.Logger {
+					return zaptest.NewLogger(t, zaptest.WrapOptions(
+						zap.Hooks(h.Caller),
+					))
+				}))
+
+				// try to receive service.Group
+				require.NoError(t, di.Invoke(func(svc service.Group) {
+					require.NoError(t, svc.Start(nil))
+					svc.Stop()
+
+					t.Logf("start/stop called %d times", h.called)
+
+					require.Equal(t, len(got.Workers), h.called/2)
+				}))
 			})
-		})
-	}
-}
-
-func TestNewWorkersGroup(t *testing.T) {
-	testWorkers := []*worker.Worker{worker.New(nil)}
-
-	tests := []struct {
-		name string
-		want *worker.Group
-		args []*worker.Worker
-	}{
-		{name: "empty workers", want: NewWorkersGroup(nil)},
-		{
-			name: "single worker",
-			args: testWorkers,
-			want: NewWorkersGroup(testWorkers),
-		},
-	}
-	for i := range tests {
-		tt := tests[i]
-		t.Run(tt.name, func(t *testing.T) {
-			if got := NewWorkersGroup(tt.args); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("NewWorkersGroup() = %v, want %v", got, tt.want)
-			}
 		})
 	}
 }
