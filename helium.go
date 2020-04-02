@@ -46,10 +46,10 @@ var (
 )
 
 // New helium instance
-func New(cfg *Settings, mod module.Module) (*Helium, error) {
-	h := &Helium{
-		di: dig.New(),
-	}
+func New(cfg *Settings, mod ...module.Module) (*Helium, error) {
+	h := &Helium{di: dig.New()}
+
+	modules := module.Combine(mod...)
 
 	if cfg != nil {
 		if cfg.Prefix == "" {
@@ -77,11 +77,11 @@ func New(cfg *Settings, mod module.Module) (*Helium, error) {
 		appName.Store(cfg.Name)
 		appVersion.Store(cfg.BuildVersion)
 
-		mod = append(mod, core.Provider())
-		mod = append(mod, settings.DIProvider(h.di))
+		modules = append(modules, core.Provider())
+		modules = append(modules, settings.DIProvider(h.di))
 	}
 
-	if err := module.Provide(h.di, mod); err != nil {
+	if err := module.Provide(h.di, modules); err != nil {
 		return nil, err
 	}
 

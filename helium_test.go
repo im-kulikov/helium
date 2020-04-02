@@ -34,7 +34,7 @@ type (
 	}
 )
 
-const ErrTest = Error("test")
+const testError = Error("test")
 
 func (e Error) Error() string {
 	return string(e)
@@ -44,14 +44,17 @@ func (e TestError) Error() string {
 	return "error level: " + strconv.Itoa(e.Index)
 }
 
-func (h heliumApp) Run(ctx context.Context) error    { return nil }
-func (h heliumErrApp) Run(ctx context.Context) error { return ErrTest }
+func (h heliumApp) Run(context.Context) error    { return nil }
+func (h heliumErrApp) Run(context.Context) error { return testError }
 
 func TestHelium(t *testing.T) {
 	t.Run("create new helium without errors", func(t *testing.T) {
-		h, err := New(&Settings{}, module.Module{
-			{Constructor: func() App { return heliumApp{} }},
-		}.Append(grace.Module, settings.Module, logger.Module))
+		h, err := New(&Settings{},
+			module.New(func() App { return heliumApp{} }),
+			grace.Module,
+			settings.Module,
+			logger.Module,
+		)
 
 		require.NotNil(t, h)
 		require.NoError(t, err)

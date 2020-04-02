@@ -1,6 +1,8 @@
 package module
 
-import "go.uber.org/dig"
+import (
+	"go.uber.org/dig"
+)
 
 type (
 	// Module type
@@ -23,9 +25,18 @@ func New(fn interface{}, opts ...dig.ProvideOption) Module {
 	}
 }
 
+// Combine multiple modules into new one
+func Combine(mods ...Module) Module {
+	var result Module
+	for _, mod := range mods {
+		result = append(result, mod...)
+	}
+	return result
+}
+
 // Append module to target module and return new module
 func (m Module) Append(mods ...Module) Module {
-	var result = m
+	result := m
 	for _, mod := range mods {
 		result = append(result, mod...)
 	}
