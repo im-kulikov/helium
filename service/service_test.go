@@ -50,8 +50,12 @@ func (t *testWorker) Start(context.Context) error {
 	return nil
 }
 
-func (t *testWorker) Stop() {
+func (t *testWorker) Stop() error {
+	if t.errored {
+		return testError
+	}
 	t.started = false
+	return nil
 }
 
 func (t *testWorker) Name() string {
@@ -73,6 +77,9 @@ func TestServices(t *testing.T) {
 		services = append(services, newWorker())
 	}
 
+	// should ignore empty service
+	services = append(services, nil)
+
 	params := Params{
 		Logger: zaptest.NewLogger(t),
 		Group:  services,
@@ -81,12 +88,15 @@ func TestServices(t *testing.T) {
 	{ // good case
 		svc := newGroup(params)
 
+		// should ignore empty service
+		svc.(*group).items = append(svc.(*group).items, nil)
+
 		require.NoError(t, svc.Start(nil))
 		for i := 0; i < count; i++ {
 			require.True(t, services[i].(*testWorker).started)
 		}
 
-		svc.Stop()
+		require.NoError(t, svc.Stop())
 		for i := 0; i < count; i++ {
 			require.False(t, services[i].(*testWorker).started)
 		}
@@ -102,6 +112,7 @@ func TestServices(t *testing.T) {
 		})
 
 		require.EqualError(t, svc.Start(nil), testError.Error())
+		require.EqualError(t, svc.Stop(), testError.Error())
 		for i := 0; i < count; i++ {
 			require.False(t, services[i].(*testWorker).started)
 		}
@@ -153,6 +164,6 @@ func TestServicesFromDI(t *testing.T) {
 
 	// should provide 10 services
 	require.NoError(t, di.Invoke(func(svc Group) {
-		require.Len(t, svc.(*services).items, cnt)
+		require.Len(t, svc.(*group).items, cnt)
 	}))
 }

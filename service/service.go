@@ -11,7 +11,7 @@ type (
 	// runnable interface
 	runner interface {
 		Start(context.Context) error
-		Stop()
+		Stop() error
 	}
 
 	// Service interface
@@ -31,7 +31,7 @@ type (
 		Group  []Service `group:"services"`
 	}
 
-	services struct {
+	group struct {
 		log   *zap.Logger
 		items []Service
 	}
@@ -39,17 +39,34 @@ type (
 
 // create group of services
 func newGroup(p Params) Group {
-	return &services{
+	services := make([]Service, 0, len(p.Group))
+
+	for i := range p.Group {
+		if p.Group[i] == nil {
+			p.Logger.Warn("ignore nil service", zap.Int("position", i))
+			continue
+		}
+
+		p.Logger.Info("add service", zap.String("name", p.Group[i].Name()))
+
+		services = append(services, p.Group[i])
+	}
+
+	return &group{
 		log:   p.Logger,
-		items: p.Group,
+		items: services,
 	}
 }
 
 // Start all services
-func (s *services) Start(ctx context.Context) error {
-	for _, svc := range s.items {
-		s.log.Info("run service",
-			zap.String("name", svc.Name()))
+func (s *group) Start(ctx context.Context) error {
+	for i, svc := range s.items {
+		if svc == nil {
+			s.log.Warn("ignore nil service", zap.Int("position", i))
+
+			continue
+		}
+		s.log.Info("run service", zap.String("name", svc.Name()))
 
 		if err := svc.Start(ctx); err != nil {
 			return err
@@ -60,10 +77,26 @@ func (s *services) Start(ctx context.Context) error {
 }
 
 // Stop all services
-func (s *services) Stop() {
-	for _, svc := range s.items {
+func (s *group) Stop() error {
+	var lastError error
+	for i, svc := range s.items {
+		if svc == nil {
+			s.log.Warn("ignore nil service",
+				zap.Int("position", i))
+
+			continue
+		}
+
+		err := svc.Stop()
+
 		s.log.Info("stop service",
-			zap.String("name", svc.Name()))
-		svc.Stop()
+			zap.String("name", svc.Name()),
+			zap.Error(err))
+
+		if err != nil {
+			lastError = err
+		}
 	}
+
+	return lastError
 }
