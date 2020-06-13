@@ -5,6 +5,7 @@ import (
 	"net/http/pprof"
 
 	"github.com/im-kulikov/helium/module"
+	"github.com/im-kulikov/helium/service"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
@@ -27,14 +28,14 @@ type (
 		dig.In
 
 		Logger  *zap.Logger
-		Servers []Service `group:"services"`
+		Servers []service.Service `group:"services"`
 	}
 
 	// ServerResult struct
 	ServerResult struct {
 		dig.Out
 
-		Server Service `group:"services"`
+		Server service.Service `group:"services"`
 	}
 
 	profileParams struct {
@@ -58,6 +59,7 @@ type (
 
 		Logger *zap.Logger
 		Viper  *viper.Viper
+		Name   string       `name:"grpc_name" optional:"true"`
 		Key    string       `name:"grpc_config" optional:"true"`
 		Server *grpc.Server `name:"grpc_server" optional:"true"`
 	}
@@ -75,7 +77,7 @@ var (
 )
 
 // NewMultiServer returns new multi servers group
-func NewMultiServer(p MultiServerParams) (Service, error) { return New(p.Logger, p.Servers...) }
+func NewMultiServer(p MultiServerParams) (service.Service, error) { return New(p.Logger, p.Servers...) }
 
 func newProfileServer(p profileParams) (ServerResult, error) {
 	mux := http.NewServeMux()
@@ -99,51 +101,54 @@ func newMetricServer(p metricParams) (ServerResult, error) {
 	return NewHTTPServer(p.Viper, "metrics", mux, p.Logger)
 }
 
-func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
-	return NewGRPCServer(p.Viper, p.Key, p.Server, p.Logger)
-}
-
 // NewAPIServer creates api server by http.Handler from DI container
 func NewAPIServer(p APIParams) (ServerResult, error) {
 	return NewHTTPServer(p.Config, "api", p.Handler, p.Logger)
 }
 
-// NewGRPCServer creates gRPC server that will be embedded info multi-server.
-func NewGRPCServer(v *viper.Viper, key string, s *grpc.Server, l *zap.Logger) (ServerResult, error) {
+func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
+	if p.Name == "" {
+		p.Name = "default"
+	}
+
 	switch {
-	case l == nil:
+	case p.Logger == nil:
 		return ServerResult{}, ErrEmptyLogger
-	case key == "" || v == nil:
-		l.Info("Empty config or key for gRPC server, skip")
+	case p.Key == "":
+		p.Logger.Info("Empty config key for gRPC server, skip")
 		return ServerResult{}, nil
-	case s == nil:
-		l.Info("Empty server, skip",
-			zap.String("name", key))
+	case p.Viper == nil:
+		p.Logger.Info("Empty config for gRPC server, skip")
 		return ServerResult{}, nil
-	case v.IsSet(key + ".disabled"):
-		l.Info("Disabled, skip",
-			zap.String("name", key))
+	case p.Server == nil:
+		p.Logger.Info("Empty server, skip",
+			zap.String("name", p.Name))
+		return ServerResult{}, nil
+	case p.Viper.IsSet(p.Key + ".disabled"):
+		p.Logger.Info("Disabled, skip",
+			zap.String("name", p.Name))
 		return ServerResult{}, nil
 	}
 
 	options := []GRPCOption{
-		GRPCListenAddress(v.GetString(key + ".address")),
-		GRPCShutdownTimeout(v.GetDuration(key + ".shutdown_timeout")),
+		GRPCName(p.Name),
+		GRPCListenAddress(p.Viper.GetString(p.Key + ".address")),
+		GRPCShutdownTimeout(p.Viper.GetDuration(p.Key + ".shutdown_timeout")),
 	}
 
-	if v.GetBool(key + ".skip_errors") {
+	if p.Viper.GetBool(p.Key + ".skip_errors") {
 		options = append(options, GRPCSkipErrors())
 	}
 
-	if v.IsSet(key + ".network") {
-		options = append(options, GRPCListenNetwork(v.GetString(key+".network")))
+	if p.Viper.IsSet(p.Key + ".network") {
+		options = append(options, GRPCListenNetwork(p.Viper.GetString(p.Key+".network")))
 	}
 
-	serve, err := NewGRPCService(s, options...)
+	serve, err := NewGRPCService(p.Server, options...)
 
-	l.Info("Creates gRPC server",
-		zap.String("name", key),
-		zap.String("address", v.GetString(key+".address")))
+	p.Logger.Info("Creates gRPC server",
+		zap.String("name", p.Key),
+		zap.String("address", p.Viper.GetString(p.Key+".address")))
 
 	return ServerResult{Server: serve}, err
 }
@@ -182,6 +187,8 @@ func NewHTTPServer(v *viper.Viper, key string, h http.Handler, l *zap.Logger) (S
 	if v.IsSet(key + ".skip_errors") {
 		options = append(options, HTTPSkipErrors())
 	}
+
+	options = append(options, HTTPName(key))
 
 	serve, err := NewHTTPService(
 		&http.Server{

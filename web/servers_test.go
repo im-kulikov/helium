@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/im-kulikov/helium/module"
+	"github.com/im-kulikov/helium/service"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/dig"
@@ -74,14 +75,23 @@ func TestServers(t *testing.T) {
 		t.Run("should skip for disabled gRPC server", func(t *testing.T) {
 			g := grpc.NewServer()
 			v.Set("test-gRPC.disabled", true)
-			res, err := NewGRPCServer(v, "test-gRPC", g, l)
+			res, err := newDefaultGRPCServer(grpcParams{
+				Logger: l,
+				Viper:  v,
+				Key:    "test-gRPC",
+				Server: g,
+			})
 			require.Empty(t, res)
 			require.NoError(t, err)
 			require.Empty(t, res)
 		})
 
 		t.Run("should skip for empty gRPC server", func(t *testing.T) {
-			res, err := NewGRPCServer(v, "test-gRPC", nil, l)
+			res, err := newDefaultGRPCServer(grpcParams{
+				Logger: l,
+				Viper:  v,
+				Key:    "test-gRPC",
+			})
 			require.Empty(t, res)
 			require.NoError(t, err)
 			require.Empty(t, res)
@@ -91,6 +101,12 @@ func TestServers(t *testing.T) {
 			res, err := newDefaultGRPCServer(grpcParams{})
 			require.Empty(t, res)
 			require.EqualError(t, err, ErrEmptyLogger.Error())
+		})
+
+		t.Run("should fail for empty viper", func(t *testing.T) {
+			res, err := newDefaultGRPCServer(grpcParams{Logger: l, Key: "some-key"})
+			require.Empty(t, res)
+			require.NoError(t, err)
 		})
 
 		t.Run("should skip empty gRPC default server", func(t *testing.T) {
@@ -240,6 +256,13 @@ func TestServers(t *testing.T) {
 			require.Nil(t, serve.Server)
 		})
 
+		t.Run("without logger", func(t *testing.T) {
+			v.SetDefault("api.address", ":8090")
+			serve, err := NewAPIServer(APIParams{})
+			require.EqualError(t, err, ErrEmptyLogger.Error())
+			require.Nil(t, serve.Server)
+		})
+
 		t.Run("without handler", func(t *testing.T) {
 			v.SetDefault("api.address", ":8090")
 			serve, err := NewAPIServer(APIParams{Config: v, Logger: l})
@@ -272,6 +295,8 @@ func TestServers(t *testing.T) {
 				"grpc.address":    nil,
 			}
 		)
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
 
 		// Randomize ports:
 		for name := range servers {
@@ -307,9 +332,9 @@ func TestServers(t *testing.T) {
 
 		assert.NoError(module.Provide(di, mod))
 
-		err = di.Invoke(func(serve Service) {
+		err = di.Invoke(func(serve service.Service) {
 			assert.NotNil(serve)
-			assert.NoError(serve.Start())
+			assert.NoError(serve.Start(ctx))
 
 			for name, lis := range servers {
 				t.Run(name, func(t *testing.T) {

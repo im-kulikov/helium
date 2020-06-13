@@ -20,7 +20,9 @@ type fakeService struct {
 	stopError  error
 }
 
-func (f fakeService) Start() error {
+func (f fakeService) Name() string { return "fake" }
+
+func (f fakeService) Start(_ context.Context) error {
 	return f.startError
 }
 
@@ -46,7 +48,7 @@ func TestMultiService(t *testing.T) {
 			&fakeService{startError: ErrEmptyServices},
 			&fakeService{startError: ErrEmptyLogger})
 		require.NoError(t, err)
-		require.EqualError(t, svc.Start(), ErrEmptyServices.Error())
+		require.EqualError(t, svc.Start(context.Background()), ErrEmptyServices.Error())
 	})
 
 	t.Run("should fail on stop and return last error", func(t *testing.T) {
@@ -57,6 +59,7 @@ func TestMultiService(t *testing.T) {
 			&fakeService{stopError: ErrEmptyServices},
 			&fakeService{stopError: ErrEmptyLogger})
 		require.NoError(t, err)
+		require.NotEmpty(t, svc.Name())
 		require.EqualError(t, svc.Stop(), ErrEmptyLogger.Error())
 	})
 }
@@ -84,7 +87,7 @@ func Test_ShouldFailInGoroutine(t *testing.T) {
 
 		s, err := NewHTTPService(serve, HTTPListenAddress(lis.Addr().String()))
 		require.NoError(t, err)
-		require.NoError(t, s.Start())
+		require.NoError(t, s.Start(ctx))
 
 		<-ctx.Done()
 		require.EqualError(t, ctx.Err(), context.Canceled.Error())
@@ -105,7 +108,7 @@ func Test_ShouldFailInGoroutine(t *testing.T) {
 
 		s, err := NewGRPCService(serve, GRPCListenAddress(lis.Addr().String()))
 		require.NoError(t, err)
-		require.NoError(t, s.Start())
+		require.NoError(t, s.Start(ctx))
 
 		<-ctx.Done()
 		require.EqualError(t, ctx.Err(), context.Canceled.Error())
@@ -119,7 +122,7 @@ func Test_ShouldFailInGoroutine(t *testing.T) {
 
 		serve, err := NewListener(s)
 		require.NoError(t, err)
-		require.NoError(t, serve.Start())
+		require.NoError(t, serve.Start(ctx))
 
 		<-ctx.Done()
 		require.EqualError(t, ctx.Err(), context.Canceled.Error())

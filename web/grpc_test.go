@@ -1,10 +1,13 @@
 package web
 
 import (
-	"github.com/stretchr/testify/require"
-	"google.golang.org/grpc"
+	"context"
 	"net"
 	"testing"
+
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"google.golang.org/grpc"
 )
 
 func TestGRPCService(t *testing.T) {
@@ -34,12 +37,12 @@ func TestGRPCService(t *testing.T) {
 	})
 
 	t.Run("should fail on Start and Stop", func(t *testing.T) {
-		require.EqualError(t, (&gRPC{}).Start(), ErrEmptyGRPCServer.Error())
+		require.EqualError(t, (&gRPC{}).Start(context.Background()), ErrEmptyGRPCServer.Error())
 		require.EqualError(t, (&gRPC{}).Stop(), ErrEmptyGRPCServer.Error())
 	})
 
 	t.Run("should fail on net.Listen", func(t *testing.T) {
-		require.EqualError(t, (&gRPC{server: grpc.NewServer()}).Start(), "listen: unknown network ")
+		require.EqualError(t, (&gRPC{server: grpc.NewServer()}).Start(context.Background()), "listen: unknown network ")
 	})
 
 	t.Run("should ignore ErrServerStopped", func(t *testing.T) {
@@ -50,10 +53,11 @@ func TestGRPCService(t *testing.T) {
 		serve, err := NewGRPCService(
 			grpc.NewServer(),
 			GRPCSkipErrors(),
+			GRPCWithLogger(zap.L()),
 			GRPCListenAddress(lis.Addr().String()))
 		require.NoError(t, err)
-
 		require.NoError(t, serve.Stop())
-		require.NoError(t, serve.Start())
+		require.NotEmpty(t, serve.Name())
+		require.NoError(t, serve.Start(context.Background()))
 	})
 }

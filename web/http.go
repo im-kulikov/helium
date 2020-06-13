@@ -8,11 +8,13 @@ import (
 	"time"
 
 	"github.com/im-kulikov/helium/internal"
+	"github.com/im-kulikov/helium/service"
 )
 
 type (
 	httpService struct {
 		skipErrors      bool
+		name            string
 		address         string
 		network         string
 		server          *http.Server
@@ -40,6 +42,13 @@ func HTTPShutdownTimeout(v time.Duration) HTTPOption {
 	}
 }
 
+// HTTPName allows set name for the http-service.
+func HTTPName(name string) HTTPOption {
+	return func(s *httpService) {
+		s.name = name
+	}
+}
+
 // HTTPListenNetwork allows to change default (tcp)
 // network for net.Listener.
 func HTTPListenNetwork(network string) HTTPOption {
@@ -64,7 +73,7 @@ func HTTPSkipErrors() HTTPOption {
 }
 
 // NewHTTPService creates Service from http.Server and HTTPOption's.
-func NewHTTPService(serve *http.Server, opts ...HTTPOption) (Service, error) {
+func NewHTTPService(serve *http.Server, opts ...HTTPOption) (service.Service, error) {
 	if serve == nil {
 		return nil, ErrEmptyHTTPServer
 	}
@@ -88,17 +97,23 @@ func NewHTTPService(serve *http.Server, opts ...HTTPOption) (Service, error) {
 	return s, nil
 }
 
+// Name returns name of the service.
+func (s *httpService) Name() string {
+	return fmt.Sprintf("http(%s) %s %s", s.name, s.network, s.address)
+}
+
 // Start runs http.Server and returns error
 // if something went wrong.
-func (s *httpService) Start() error {
+func (s *httpService) Start(ctx context.Context) error {
 	var (
 		err error
 		lis net.Listener
+		lic net.ListenConfig
 	)
 
 	if s.server == nil {
 		return s.catch(ErrEmptyHTTPServer)
-	} else if lis, err = net.Listen(s.network, s.address); err != nil {
+	} else if lis, err = lic.Listen(ctx, s.network, s.address); err != nil {
 		return s.catch(err)
 	}
 

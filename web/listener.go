@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/im-kulikov/helium/internal"
+	"github.com/im-kulikov/helium/service"
 )
 
 type (
@@ -53,7 +54,7 @@ func ListenerShutdownTimeout(v time.Duration) ListenerOption {
 }
 
 // NewListener creates new Listener service and applies passed options to it.
-func NewListener(lis Listener, opts ...ListenerOption) (Service, error) {
+func NewListener(lis Listener, opts ...ListenerOption) (service.Service, error) {
 	if lis == nil {
 		return nil, ErrEmptyListener
 	}
@@ -71,10 +72,13 @@ func NewListener(lis Listener, opts ...ListenerOption) (Service, error) {
 	return s, nil
 }
 
+// Name returns name of the service.
+func (l *listener) Name() string { return fmt.Sprintf("listener %T", l.server) }
+
 // Start tries to start the Listener and returns an error
 // if the Listener is empty. If something went wrong and
 // errors not ignored should panic.
-func (l *listener) Start() error {
+func (l *listener) Start(_ context.Context) error {
 	if l.server == nil {
 		return l.catch(ErrEmptyListener)
 	}

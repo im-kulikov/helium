@@ -1,19 +1,24 @@
 package web
 
 import (
+	"context"
 	"fmt"
 	"net"
 	"time"
 
 	"github.com/im-kulikov/helium/internal"
+	"github.com/im-kulikov/helium/service"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 )
 
 type (
 	gRPC struct {
 		skipErrors      bool
+		name            string
 		address         string
 		network         string
+		logger          *zap.Logger
 		server          *grpc.Server
 		shutdownTimeout time.Duration
 	}
@@ -39,6 +44,13 @@ func GRPCSkipErrors() GRPCOption {
 	}
 }
 
+// GRPCName allows set name for the http-service.
+func GRPCName(name string) GRPCOption {
+	return func(s *gRPC) {
+		s.name = name
+	}
+}
+
 // GRPCListenAddress allows to change network for net.Listener.
 func GRPCListenAddress(addr string) GRPCOption {
 	return func(g *gRPC) {
@@ -61,9 +73,16 @@ func GRPCShutdownTimeout(v time.Duration) GRPCOption {
 	}
 }
 
+// GRPCWithLogger changes default logger.
+func GRPCWithLogger(l *zap.Logger) GRPCOption {
+	return func(g *gRPC) {
+		g.logger = l
+	}
+}
+
 // NewGRPCService creates gRPC service with passed gRPC options.
 // If something went wrong it returns an error.
-func NewGRPCService(serve *grpc.Server, opts ...GRPCOption) (Service, error) {
+func NewGRPCService(serve *grpc.Server, opts ...GRPCOption) (service.Service, error) {
 	if serve == nil {
 		return nil, ErrEmptyGRPCServer
 	}
@@ -72,6 +91,8 @@ func NewGRPCService(serve *grpc.Server, opts ...GRPCOption) (Service, error) {
 		server:          serve,
 		network:         "tcp",
 		skipErrors:      false,
+		logger:          zap.L(),
+		name:            "unknown",
 		shutdownTimeout: time.Second * 30,
 	}
 
@@ -86,18 +107,24 @@ func NewGRPCService(serve *grpc.Server, opts ...GRPCOption) (Service, error) {
 	return s, nil
 }
 
+// Name returns name of the service.
+func (g *gRPC) Name() string {
+	return fmt.Sprintf("gRPC(%s) %s %s", g.name, g.network, g.address)
+}
+
 // Start tries to start gRPC service.
 // If something went wrong it returns an error.
 // If could not start server panics.
-func (g *gRPC) Start() error {
+func (g *gRPC) Start(ctx context.Context) error {
 	var (
 		err error
 		lis net.Listener
+		lic net.ListenConfig
 	)
 
 	if g.server == nil {
 		return g.catch(ErrEmptyGRPCServer)
-	} else if lis, err = net.Listen(g.network, g.address); err != nil {
+	} else if lis, err = lic.Listen(ctx, g.network, g.address); err != nil {
 		return g.catch(err)
 	}
 
@@ -113,8 +140,9 @@ func (g *gRPC) Start() error {
 
 // Stop tries to stop gRPC service.
 func (g *gRPC) Stop() error {
-	if g.server == nil {
-		return g.catch(ErrEmptyGRPCServer)
+	err := g.catch(ErrEmptyGRPCServer)
+	if g.server == nil && err != nil {
+		return err
 	}
 
 	g.server.GracefulStop()

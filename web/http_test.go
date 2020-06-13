@@ -1,6 +1,7 @@
 package web
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"net"
@@ -37,12 +38,12 @@ func TestHTTPService(t *testing.T) {
 	})
 
 	t.Run("should fail on Start and Stop", func(t *testing.T) {
-		require.EqualError(t, (&httpService{}).Start(), ErrEmptyHTTPServer.Error())
+		require.EqualError(t, (&httpService{}).Start(context.Background()), ErrEmptyHTTPServer.Error())
 		require.EqualError(t, (&httpService{}).Stop(), ErrEmptyHTTPServer.Error())
 	})
 
 	t.Run("should fail on net.Listen", func(t *testing.T) {
-		require.EqualError(t, (&httpService{server: &http.Server{}}).Start(), "listen: unknown network ")
+		require.EqualError(t, (&httpService{server: &http.Server{}}).Start(context.Background()), "listen: unknown network ")
 	})
 
 	t.Run("should not fail for tls", func(t *testing.T) {
@@ -60,7 +61,7 @@ func TestHTTPService(t *testing.T) {
 
 		serve, err := NewHTTPService(s, HTTPListenAddress(lis.Addr().String()))
 		require.NoError(t, err)
-
-		require.NoError(t, serve.Start())
+		require.NotEmpty(t, serve.Name())
+		require.NoError(t, serve.Start(context.Background()))
 	})
 }

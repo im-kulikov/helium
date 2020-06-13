@@ -1,21 +1,17 @@
 package web
 
 import (
+	"context"
 	"os"
 
 	"github.com/im-kulikov/helium/internal"
+	"github.com/im-kulikov/helium/service"
 	"go.uber.org/zap"
 )
 
 type (
-	// Service interface that allows start and stop
-	Service interface {
-		Start() error
-		Stop() error
-	}
-
 	runner struct {
-		services []Service
+		services []service.Service
 		logger   *zap.Logger
 	}
 )
@@ -31,14 +27,14 @@ const (
 var fatal = os.Exit
 
 // New gets logger and services to create multiple service runner.
-func New(log *zap.Logger, services ...Service) (Service, error) {
+func New(log *zap.Logger, services ...service.Service) (service.Service, error) {
 	if log == nil {
 		return nil, ErrEmptyLogger
 	}
 
 	multi := &runner{
 		logger:   log,
-		services: make([]Service, 0, len(services)),
+		services: make([]service.Service, 0, len(services)),
 	}
 
 	for i := range services {
@@ -56,11 +52,14 @@ func New(log *zap.Logger, services ...Service) (Service, error) {
 	return multi, nil
 }
 
+// Name returns name of the service
+func (m *runner) Name() string { return "multi-runner" }
+
 // Start tries to start every server and returns error
 // if something went wrong.
-func (m *runner) Start() error {
+func (m *runner) Start(ctx context.Context) error {
 	for i := range m.services {
-		if err := m.services[i].Start(); err != nil {
+		if err := m.services[i].Start(ctx); err != nil {
 			return err
 		}
 	}
