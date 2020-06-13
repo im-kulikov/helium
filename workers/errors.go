@@ -4,7 +4,7 @@ import "github.com/im-kulikov/helium/internal"
 
 const (
 	// ErrMissingKey when config key for worker is missing
-	ErrMissingKey = internal.Error("missing worker key")
+	ErrMissingKey = internal.Error("missing worker config")
 
 	// ErrEmptyConfig when viper not passed to params
 	ErrEmptyConfig = internal.Error("empty config")

@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
+	"go.uber.org/zap"
 )
 
 type (
@@ -17,6 +18,7 @@ type (
 		dig.In
 
 		Config *viper.Viper
+		Logger *zap.Logger
 		Jobs   map[string]worker.Job
 		Locker worker.Locker `optional:"true"`
 	}
@@ -68,8 +70,10 @@ func (w *wrapper) Start(ctx context.Context) error {
 }
 
 // Stop wrapped worker
-func (w *wrapper) Stop() {
+func (w *wrapper) Stop() error {
 	<-w.done
+
+	return nil
 }
 
 // Name of the wrapped worker
@@ -93,17 +97,19 @@ func NewWorkers(p Params) (Out, error) {
 		wrk, err := workerByConfig(options{
 			Viper:  p.Config,
 			Locker: p.Locker,
-			Name:   name,
 			Job:    job,
+			Name:   name,
 		})
 		if err != nil {
 			// all or nothing
 			return result, err
 		}
 
+		p.Logger.Info("Create new worker", zap.String("name", name))
+
 		result.Workers = append(result.Workers, &wrapper{
 			Worker: wrk,
-			name:   name,
+			name:   "workers." + name,
 			done:   make(chan struct{}),
 		})
 	}

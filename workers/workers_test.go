@@ -96,6 +96,7 @@ func TestNewWorkers(t *testing.T) {
 			name: "empty job",
 			err:  ErrEmptyJob,
 			args: Params{
+				Logger: zap.L(),
 				Jobs:   map[string]worker.Job{"test": nil},
 				Config: mockedViper(nil),
 			},
@@ -104,6 +105,7 @@ func TestNewWorkers(t *testing.T) {
 			name: "good case",
 			len:  1,
 			args: Params{
+				Logger: zap.L(),
 				Jobs:   map[string]worker.Job{"test": nil},
 				Config: mockedViper(config{"disabled": true}),
 			},
@@ -139,7 +141,7 @@ func TestNewWorkers(t *testing.T) {
 				// try to receive service.Group
 				require.NoError(t, di.Invoke(func(svc service.Group) {
 					require.NoError(t, svc.Start(nil))
-					svc.Stop()
+					require.NoError(t, svc.Stop())
 
 					t.Logf("start/stop called %d times", h.called)
 
