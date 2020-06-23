@@ -13,7 +13,7 @@ require (
 	go.uber.org/dig v1.10.0
 	go.uber.org/zap v1.15.0
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
-	google.golang.org/grpc v1.29.1
+	google.golang.org/grpc v1.30.0
 )
 
 // Blocked in Russia
