@@ -31,6 +31,12 @@ type (
 		Config string       `name:"grpc_config"`
 		Server *grpc.Server `name:"grpc_server"`
 	}
+
+	testMultiParams struct {
+		dig.In
+
+		Services []service.Service `group:"services"`
+	}
 )
 
 var (
@@ -332,7 +338,11 @@ func TestServers(t *testing.T) {
 
 		assert.NoError(module.Provide(di, mod))
 
-		err = di.Invoke(func(serve service.Service) {
+		err = di.Invoke(func(p testMultiParams) {
+			assert.NotEmpty(p.Services)
+
+			serve := p.Services[0]
+
 			assert.NotNil(serve)
 			assert.NoError(serve.Start(ctx))
 
