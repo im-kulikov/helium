@@ -66,14 +66,29 @@ type (
 )
 
 var (
-	// ServersModule of web base structs
-	ServersModule = module.Module{
-		{Constructor: newDefaultGRPCServer},
-		{Constructor: newProfileServer},
-		{Constructor: newMetricServer},
-		{Constructor: NewAPIServer},
-		{Constructor: NewMultiServer},
-	}
+	// DefaultServersModule of web base structs.
+	DefaultServersModule = module.Combine(
+		DefaultGRPCModule,
+		ProfilerModule,
+		MetricsModule,
+		APIModule,
+		MultiServeModule,
+	)
+
+	// APIModule defines API server module.
+	APIModule = module.New(NewAPIServer)
+
+	// MultiServeModule defines multi serve module.
+	MultiServeModule = module.New(NewMultiServer)
+
+	// ProfilerModule defines pprof server module.
+	ProfilerModule = module.New(newProfileServer)
+
+	// MetricsModule defines prometheus server module.
+	MetricsModule = module.New(newMetricServer)
+
+	// DefaultGRPCModule defines default gRPC server module.
+	DefaultGRPCModule = module.New(newDefaultGRPCServer)
 )
 
 // NewMultiServer returns new multi servers group

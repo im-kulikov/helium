@@ -327,7 +327,7 @@ func TestServers(t *testing.T) {
 				Options:     []dig.ProvideOption{dig.Name("profile_handler")},
 			},
 		}.Append(
-			ServersModule,
+			DefaultServersModule,
 		)
 
 		assert.NoError(module.Provide(di, mod))
