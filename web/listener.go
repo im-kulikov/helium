@@ -17,6 +17,7 @@ type (
 	}
 
 	listener struct {
+		name            string
 		skipErrors      bool
 		ignoreErrors    []error
 		server          Listener
@@ -53,6 +54,13 @@ func ListenerShutdownTimeout(v time.Duration) ListenerOption {
 	}
 }
 
+// ListenerName allows changing the default listener name.
+func ListenerName(v string) ListenerOption {
+	return func(l *listener) {
+		l.name = v
+	}
+}
+
 // NewListener creates new Listener service and applies passed options to it.
 func NewListener(lis Listener, opts ...ListenerOption) (service.Service, error) {
 	if lis == nil {
@@ -63,6 +71,9 @@ func NewListener(lis Listener, opts ...ListenerOption) (service.Service, error) 
 		server:          lis,
 		skipErrors:      false,
 		shutdownTimeout: time.Second * 30,
+
+		// Default name
+		name: fmt.Sprintf("listener %T", lis),
 	}
 
 	for i := range opts {
@@ -73,7 +84,7 @@ func NewListener(lis Listener, opts ...ListenerOption) (service.Service, error) 
 }
 
 // Name returns name of the service.
-func (l *listener) Name() string { return fmt.Sprintf("listener %T", l.server) }
+func (l *listener) Name() string { return l.name }
 
 // Start tries to start the Listener and returns an error
 // if the Listener is empty. If something went wrong and

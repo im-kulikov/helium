@@ -18,6 +18,8 @@ type (
 	slowlyListener struct{}
 )
 
+const listenerTestName = "test-name"
+
 var (
 	_ Listener = (*fakeListener)(nil)
 	_ Listener = (*slowlyListener)(nil)
@@ -44,6 +46,7 @@ func TestListenerService(t *testing.T) {
 			&fakeListener{},
 			ListenerIgnoreError(ErrEmptyListener),
 			ListenerSkipErrors(),
+			ListenerName(listenerTestName),
 			ListenerShutdownTimeout(time.Second))
 		require.NoError(t, err)
 
@@ -52,6 +55,7 @@ func TestListenerService(t *testing.T) {
 		require.True(t, s.skipErrors)
 		require.Equal(t, time.Second, s.shutdownTimeout)
 		require.Equal(t, ErrEmptyListener, s.ignoreErrors[0])
+		require.Equal(t, s.name, listenerTestName)
 	})
 
 	t.Run("should fail on empty server", func(t *testing.T) {
