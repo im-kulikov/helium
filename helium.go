@@ -11,7 +11,6 @@ import (
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/settings"
-	"github.com/spf13/viper"
 	"go.uber.org/atomic"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
@@ -110,9 +109,8 @@ func Catch(err error) {
 		return
 	}
 
-	v := viper.New()
 	log, logErr := logger.
-		NewLogger(logger.NewLoggerConfig(v), &settings.Core{
+		NewLogger(logger.NewLoggerConfig(settings.Viper()), &settings.Core{
 			Name:         appName.Load(),
 			BuildVersion: appVersion.Load(),
 		})
