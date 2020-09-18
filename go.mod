@@ -9,7 +9,7 @@ require (
 	github.com/prometheus/client_golang v1.7.1
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1
-	go.uber.org/atomic v1.6.0
+	go.uber.org/atomic v1.7.0
 	go.uber.org/dig v1.10.0
 	go.uber.org/zap v1.16.0
 	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
