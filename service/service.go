@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 
 	"go.uber.org/dig"
 	"go.uber.org/zap"
@@ -93,7 +94,7 @@ func (s *group) Stop() error {
 			zap.String("name", svc.Name()),
 			zap.Error(err))
 
-		if err != nil {
+		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
 			lastError = err
 		}
 	}
