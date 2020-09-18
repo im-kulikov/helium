@@ -387,7 +387,7 @@ func TestServers(t *testing.T) {
 				})
 			}
 
-			assert.NoError(serve.Stop())
+			assert.EqualError(serve.Stop(), context.DeadlineExceeded.Error())
 		})
 		assert.NoError(err)
 	})
