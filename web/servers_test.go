@@ -21,9 +21,7 @@ import (
 )
 
 type (
-	testGRPC struct {
-		gt.TestServiceServer
-	}
+	testGRPC struct{}
 
 	grpcResult struct {
 		dig.Out
@@ -45,10 +43,13 @@ var (
 	_ = ListenerShutdownTimeout
 )
 
+// One empty request followed by one empty response.
 func (t testGRPC) EmptyCall(context.Context, *gt.Empty) (*gt.Empty, error) {
 	return new(gt.Empty), nil
 }
 
+// One request followed by one response.
+// The server returns the client payload as-is.
 func (t testGRPC) UnaryCall(context.Context, *gt.SimpleRequest) (*gt.SimpleResponse, error) {
 	return nil, status.Error(codes.AlreadyExists, codes.AlreadyExists.String())
 }
@@ -66,7 +67,8 @@ func testHTTPHandler(assert *require.Assertions) http.Handler {
 
 func testGRPCServer(_ *require.Assertions) *grpc.Server {
 	s := grpc.NewServer()
-	gt.RegisterTestServiceServer(s, testGRPC{})
+	svc := gt.NewTestServiceService(testGRPC{})
+	gt.RegisterTestServiceService(s, svc)
 	return s
 }
 
