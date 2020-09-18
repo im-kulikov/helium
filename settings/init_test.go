@@ -15,6 +15,7 @@ func TestInit(t *testing.T) {
 
 		v, err := New(cfg)
 		require.NoError(t, err)
+		require.Equal(t, v, Viper())
 		require.IsType(t, viper.New(), v)
 	})
 
