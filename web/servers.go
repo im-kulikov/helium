@@ -28,14 +28,14 @@ type (
 		dig.In
 
 		Logger  *zap.Logger
-		Servers []service.Service `group:"services"`
+		Servers []service.Service `group:"web_servers"`
 	}
 
 	// ServerResult struct
 	ServerResult struct {
 		dig.Out
 
-		Server service.Service `group:"services"`
+		Server service.Service `group:"web_servers"`
 	}
 
 	profileParams struct {
@@ -79,7 +79,7 @@ var (
 	APIModule = module.New(NewAPIServer)
 
 	// MultiServeModule defines multi serve module.
-	MultiServeModule = module.New(NewMultiServer)
+	MultiServeModule = module.New(NewMultiServer, dig.Group("services"))
 
 	// ProfilerModule defines pprof server module.
 	ProfilerModule = module.New(newProfileServer)
@@ -174,7 +174,7 @@ func NewHTTPServer(v *viper.Viper, key string, h http.Handler, l *zap.Logger) (S
 	case l == nil:
 		return ServerResult{}, ErrEmptyLogger
 	case key == "" || v == nil:
-		l.Info("Empty config or key for http server, skip")
+		l.Info("Empty config or key for http server, skip", zap.String("key", key))
 		return ServerResult{}, nil
 	case h == nil:
 		l.Info("Empty handler, skip",
@@ -218,7 +218,7 @@ func NewHTTPServer(v *viper.Viper, key string, h http.Handler, l *zap.Logger) (S
 		options...,
 	)
 
-	l.Info("Creates http server",
+	l.Info("creates http server",
 		zap.String("name", key),
 		zap.String("address", v.GetString(key+".address")))
 

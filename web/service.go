@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"errors"
 	"os"
 
 	"github.com/im-kulikov/helium/internal"
@@ -53,12 +54,15 @@ func New(log *zap.Logger, services ...service.Service) (service.Service, error) 
 }
 
 // Name returns name of the service
-func (m *runner) Name() string { return "multi-runner" }
+func (m *runner) Name() string { return "web.multi-runner" }
 
 // Start tries to start every server and returns error
 // if something went wrong.
 func (m *runner) Start(ctx context.Context) error {
 	for i := range m.services {
+		m.logger.Info("try to run server",
+			zap.String("name", m.services[i].Name()))
+
 		if err := m.services[i].Start(ctx); err != nil {
 			return err
 		}
@@ -72,11 +76,12 @@ func (m *runner) Start(ctx context.Context) error {
 func (m *runner) Stop() error {
 	var lastErr error
 	for i := range m.services {
-		if err := m.services[i].Stop(); err != nil {
+		if err := m.services[i].Stop(); err != nil && !errors.Is(err, context.DeadlineExceeded) {
 			lastErr = err
 
 			m.logger.Error("could not stop server",
 				zap.Int("index", i),
+				zap.String("name", m.services[i].Name()),
 				zap.Error(err))
 		}
 	}
