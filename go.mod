@@ -6,13 +6,13 @@ require (
 	bou.ke/monkey v1.0.2
 	github.com/chapsuk/worker v1.0.0
 	github.com/pkg/errors v0.9.1
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.8.0
 	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1
 	go.uber.org/atomic v1.7.0
 	go.uber.org/dig v1.10.0
 	go.uber.org/zap v1.16.0
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859
+	golang.org/x/net v0.0.0-20200625001655-4c5254603344
 	google.golang.org/grpc v1.32.0
 )
 
