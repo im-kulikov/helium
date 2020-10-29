@@ -4,7 +4,6 @@ go 1.13
 
 require (
 	bou.ke/monkey v1.0.2
-	github.com/chapsuk/worker v1.0.0
 	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.8.0
 	github.com/spf13/viper v1.7.1
