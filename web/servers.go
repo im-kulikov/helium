@@ -136,12 +136,12 @@ func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
 	case p.Viper == nil:
 		p.Logger.Info("Empty config for gRPC server, skip")
 		return ServerResult{}, nil
-	case p.Server == nil:
-		p.Logger.Info("Empty server, skip",
-			zap.String("name", p.Name))
-		return ServerResult{}, nil
 	case p.Viper.IsSet(p.Key + ".disabled"):
 		p.Logger.Info("Disabled, skip",
+			zap.String("name", p.Name))
+		return ServerResult{}, nil
+	case p.Server == nil:
+		p.Logger.Info("Empty server, skip",
 			zap.String("name", p.Name))
 		return ServerResult{}, nil
 	}
