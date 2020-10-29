@@ -21,7 +21,9 @@ import (
 )
 
 type (
-	testGRPC struct{}
+	testGRPC struct {
+		gt.TestServiceServer
+	}
 
 	grpcResult struct {
 		dig.Out
@@ -67,8 +69,8 @@ func testHTTPHandler(assert *require.Assertions) http.Handler {
 
 func testGRPCServer(_ *require.Assertions) *grpc.Server {
 	s := grpc.NewServer()
-	svc := gt.NewTestServiceService(testGRPC{})
-	gt.RegisterTestServiceService(s, svc)
+	gt.RegisterTestServiceServer(s, new(testGRPC))
+
 	return s
 }
 
