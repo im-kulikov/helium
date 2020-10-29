@@ -47,6 +47,28 @@ func TestZapLogger(t *testing.T) {
 			require.NoError(t, err)
 		})
 
+		t.Run("setup config (no caller)", func(t *testing.T) {
+			v.SetDefault("debug", true)
+			v.SetDefault("logger.no_disclaimer", true)
+			v.SetDefault("logger.level", "info")
+			v.SetDefault("logger.format", "console")
+			v.SetDefault("logger.color", true)
+			v.SetDefault("logger.no_caller", true)
+			v.SetDefault("logger.sampling.initial", 100)
+			v.SetDefault("logger.sampling.thereafter", 100)
+
+			cfg := NewLoggerConfig(v)
+			require.Equal(t, "info", cfg.Level)
+			require.Equal(t, "console", cfg.Format)
+
+			require.NotNil(t, cfg.Sampling)
+			require.Equal(t, 100, cfg.Sampling.Initial)
+			require.Equal(t, 100, cfg.Sampling.Thereafter)
+
+			_, err := NewLogger(cfg, &settings.Core{})
+			require.NoError(t, err)
+		})
+
 		t.Run("config safely", func(t *testing.T) {
 			levels := []string{
 				"bad",
