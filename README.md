@@ -59,7 +59,6 @@ It contains the following components for rapid prototyping of your projects:
 - [Redis](https://github.com/go-helium/redis) - module for type-safe [Redis](https://github.com/go-redis/redis) client for Golang  
 - Settings - based on [Viper](https://github.com/spf13/viper). A complete configuration solution for Go applications including 12-Factor apps. It is designed to work within an application, and can handle all types of configuration needs and formats
 - Web - [see more](#web-module)
-- Workers - are tools to run goroutines and do arbitrary work on a schedule along with a mechanism to safely stop each one. Based on [chapsuk/worker](https://github.com/chapsuk/worker)
 
 ### Defaults and preconfigure
 
@@ -68,14 +67,24 @@ or do something with DI.
 
 **Example:**
 ```go
-helium.New(&helium.Settings{
-    Name: "Abc",
-    Defaults: func(cfg *settings.Core) {
-        cfg.Name = "TEST_NAME"
-        cfg.BuildTime = "TEST_BUILD_TIME"
-        cfg.BuildVersion = "TEST_BUILD_VERSION"
-    },
-})
+package main
+
+import (
+	"github.com/im-kulikov/helium"
+	"github.com/im-kulikov/helium/settings"
+)
+
+func main() {
+    _, err := helium.New(&helium.Settings{
+        Name: "Abc",
+        Defaults: func(cfg *settings.Core) {
+            cfg.Name = "TEST_NAME"
+            cfg.BuildTime = "TEST_BUILD_TIME"
+            cfg.BuildVersion = "TEST_BUILD_VERSION"
+        },
+    })
+    helium.Catch(err)
+}
 ``` 
 
 ### Service module
@@ -86,7 +95,7 @@ helium.New(&helium.Settings{
 type Service {
     // runnable interface
     Start(context.Context) error
-    Stop()
+    Stop() error
 
     Name() string 
 }
@@ -95,6 +104,16 @@ type Service {
 You can pass into DI group of services and use them in `app.Run` method, for example:
 
 ```go
+package main
+
+import (
+    "context"
+    
+    "github.com/im-kulikov/helium/service"
+)
+
+type app struct {}
+
 func (a *app) Run(ctx context.Context, svc service.Group) error {
     if err := svc.Start(ctx); err != nil {
         return err
@@ -102,9 +121,7 @@ func (a *app) Run(ctx context.Context, svc service.Group) error {
     
     <-ctx.Done()
 
-    svc.Stop()
-    
-    return nil
+    return svc.Stop()
 }
 ```
 
@@ -116,8 +133,9 @@ package some_pkg
 import (
     "context"
 
-    "go.uber.org/dig"
+    "github.com/im-kulikov/helium/module"
     "github.com/im-kulikov/helium/service"
+    "go.uber.org/dig"
 )
 
 type OutParams struct {
@@ -129,17 +147,21 @@ type testWorker struct {
     name string
 }
 
+var _ = module.Module{
+    {Constructor: NewSingleOutService()},
+    {Constructor: NewSingleService, Options: dig.Group("services")},
+}
+
 func (w *testWorker) Start(context.Context) error { return nil }
-func (w *testWorker) Stop() { }
+func (w *testWorker) Stop() error { return nil }
 func (w *testWorker) Name() string { return w.name }
 
 func NewSingleOutService() OutParams {
     return OutParams{ Service: &testWorker{name: "worker1"} }
 }
 
-// or using dig.Group("services")
-// module.New(NewSingService, dig.Group("services")
-func NewSingService() service.Service {
+// module.New(NewSingleService, dig.Group("services")
+func NewSingleService() service.Service {
     return &testWorker{name: "worker1"}
 }
 ```
@@ -152,8 +174,9 @@ package some_pkg
 import (
     "context"
 
-    "go.uber.org/dig"
+    "github.com/im-kulikov/helium/module"
     "github.com/im-kulikov/helium/service"
+    "go.uber.org/dig"
 )
 
 // for multiple services use `group:"services,flatten"`
@@ -166,8 +189,13 @@ type testWorker struct {
     name string
 }
 
+var _ = module.Module{
+    {Constructor: NewMultipleOut},
+    {Constructor: NewMultiple, Options: dig.Group("services,flatten")},
+}
+
 func (w *testWorker) Start(context.Context) error { return nil }
-func (w *testWorker) Stop() { }
+func (w *testWorker) Stop() error { return nil }
 func (w *testWorker) Name() string { return w.name }
 
 func NewMultipleOut() OutParams {
@@ -485,7 +513,7 @@ type SNMPListener struct {
   serve *snmpgo.TrapServer
 }
 
-var MyModule = module.Module{
+var _ = module.Module{
   {Constructor: NewSNMPServer},
 }
 
@@ -495,10 +523,10 @@ func NewSNMPServer(v *viper.Viper, l *zap.Logger) (web.ServerResult, error) {
   switch {
   case v.GetBool("snmp.disabled"):
 		l.Warn("SNMP server is disabled")
-    return
+    return res, nil
   case !v.IsSet("snmp.address"):
     l.Warn("SNMP server shoud have address")
-    return
+    return res, nil
 
   }
 
@@ -555,7 +583,7 @@ type gRPCResult struct {
     Server *grpc.Server `name:"grpc_server"`
 }
 
-var MyModule = module.Module{
+var _ = module.Module{
   {Constructor: NewDefaultGRPCServer},
 }
 
@@ -576,33 +604,6 @@ func NewDefaultGRPCServer() gRPCResult {
   }
 }
 ```
-
-## Workers Module
-
-Simple abstraction for control background jobs.
-
-[Worker module](https://github.com/chapsuk/worker) adding the abstraction layer around background jobs, allows make a job periodically, observe execution time and to control concurrent execution.
-
-Group of workers allows to control jobs start time and wait until all runned workers finished when we need stop all jobs.
-
-
-Workers config example:
-```yaml
-workers:
-  ## example: ##
-  ## job_name:
-  ##   disabled: false   # to disable worker
-  ##   immediately: true # run worker when start application
-  ##   ticker: 30s       # run job every 30s
-  ##   timer: 30s        # run job every 30s and reset timer
-  ##   cron: * * * * *   # run job by crontab specs, e.g. "* * * * *"
-```
-
-**Features**
-- Scheduling, use one from existing worker.By* schedule functions. Supporting cron schedule spec format by robfig/cron parser.
-- Control concurrent execution around multiple instances by worker.With* lock functions. Supporting redis locks by go-redis/redis and bsm/redis-lock pkgs.
-- Observe a job execution time duration with worker.SetObserever. Friendly for prometheus/client_golang package.
-- Graceful stop, wait until all running jobs was completed.
 
 ## Project Examples
 
@@ -632,7 +633,8 @@ package main
 
 import (
 	"context"
-	"net/http"
+	"github.com/im-kulikov/helium/service"
+"net/http"
 
 	"github.com/chapsuk/mserv"
 	"github.com/im-kulikov/helium"
@@ -655,9 +657,9 @@ func main() {
 		{Constructor: handler},
 	}.Append(
 		grace.Module,
-		settings.Module,
-		web.ServersModule,
 		logger.Module,
+		settings.Module,
+		web.DefaultServersModule,
 	))
 	err = dig.RootCause(err)
 	helium.Catch(err)
@@ -675,17 +677,20 @@ func handler() http.Handler {
 	return h
 }
 
-func runner(s mserv.Server, l *zap.Logger, ctx context.Context) {
-	l.Info("run servers")
-	s.Start()
+func runner(ctx context.Context, svc service.Group, l *zap.Logger) error {
+	l.Info("run services")
+	if err := svc.Start(ctx); err != nil {
+        return err
+    }
 
 	l.Info("application started")
 	<-ctx.Done()
 
-	l.Info("stop servers")
-	s.Stop()
+	l.Info("stop services", zap.Error(svc.Stop()))
 
 	l.Info("application stopped")
+    
+    return nil
 }
 ```
 
