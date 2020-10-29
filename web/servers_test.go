@@ -82,6 +82,17 @@ func TestServers(t *testing.T) {
 	)
 
 	t.Run("gRPC default server", func(t *testing.T) {
+		t.Run("should skip for empty gRPC server", func(t *testing.T) {
+			res, err := newDefaultGRPCServer(grpcParams{
+				Logger: l,
+				Viper:  v,
+				Key:    "test-gRPC",
+			})
+			require.Empty(t, res)
+			require.NoError(t, err)
+			require.Empty(t, res)
+		})
+
 		t.Run("should skip for disabled gRPC server", func(t *testing.T) {
 			g := grpc.NewServer()
 			v.Set("test-gRPC.disabled", true)
@@ -90,17 +101,6 @@ func TestServers(t *testing.T) {
 				Viper:  v,
 				Key:    "test-gRPC",
 				Server: g,
-			})
-			require.Empty(t, res)
-			require.NoError(t, err)
-			require.Empty(t, res)
-		})
-
-		t.Run("should skip for empty gRPC server", func(t *testing.T) {
-			res, err := newDefaultGRPCServer(grpcParams{
-				Logger: l,
-				Viper:  v,
-				Key:    "test-gRPC",
 			})
 			require.Empty(t, res)
 			require.NoError(t, err)
