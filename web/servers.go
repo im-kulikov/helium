@@ -122,16 +122,17 @@ func NewAPIServer(p APIParams) (ServerResult, error) {
 }
 
 func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
+	if p.Key == "" {
+		p.Key = "grpc"
+	}
+
 	if p.Name == "" {
-		p.Name = "default"
+		p.Name = "default_grpc"
 	}
 
 	switch {
 	case p.Logger == nil:
 		return ServerResult{}, ErrEmptyLogger
-	case p.Key == "":
-		p.Logger.Info("Empty config key for gRPC server, skip")
-		return ServerResult{}, nil
 	case p.Viper == nil:
 		p.Logger.Info("Empty config for gRPC server, skip")
 		return ServerResult{}, nil
