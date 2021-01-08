@@ -101,5 +101,16 @@ func TestModule(t *testing.T) {
 			err := Provide(dic, m5)
 			require.Error(t, err)
 		})
+
+		t.Run("tries to append constructors into module", func(t *testing.T) {
+			m6 := m1.AppendConstructor(
+				func() int { return 1 },
+				func() float32 { return 2 },
+				func() float64 { return 3 },
+				func() string { return "4" })
+
+			require.Len(t, m6, 5)
+			require.NoError(t, Provide(dig.New(), m6))
+		})
 	})
 }

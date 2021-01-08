@@ -15,7 +15,7 @@ type (
 	}
 )
 
-// New single module
+// New single module.
 func New(fn interface{}, opts ...dig.ProvideOption) Module {
 	return Module{
 		{
@@ -25,7 +25,7 @@ func New(fn interface{}, opts ...dig.ProvideOption) Module {
 	}
 }
 
-// Combine multiple modules into new one
+// Combine multiple modules into new one.
 func Combine(mods ...Module) Module {
 	var result Module
 	for _, mod := range mods {
@@ -34,7 +34,7 @@ func Combine(mods ...Module) Module {
 	return result
 }
 
-// Append module to target module and return new module
+// Append module to target module and return new module.
 func (m Module) Append(mods ...Module) Module {
 	result := m
 	for _, mod := range mods {
@@ -43,7 +43,17 @@ func (m Module) Append(mods ...Module) Module {
 	return result
 }
 
-// Provide set providers functions to DI container
+// AppendConstructor adds constructors into the module and return new Module.
+func (m Module) AppendConstructor(constructors ...interface{}) Module {
+	modules := make([]Module, 0, len(constructors))
+	for _, c := range constructors {
+		modules = append(modules, New(c))
+	}
+
+	return m.Append(modules...)
+}
+
+// Provide set providers functions to DI container.
 func Provide(dic *dig.Container, providers Module) error {
 	for _, p := range providers {
 		if err := dic.Provide(p.Constructor, p.Options...); err != nil {
