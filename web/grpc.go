@@ -135,6 +135,8 @@ func (g *gRPC) Start(ctx context.Context) error {
 		}
 	}()
 
+	g.logger.Info("starting gRPC server", zap.String("name", g.Name()))
+
 	return nil
 }
 
