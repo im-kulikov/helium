@@ -40,5 +40,11 @@ func (d defaultApp) Run(ctx context.Context) error {
 	<-ctx.Done()
 
 	d.log.Info("stopping services")
-	return d.svc.Stop()
+	if err := d.svc.Stop(); err != nil {
+		return err
+	}
+
+	d.log.Info("application stopped")
+
+	return nil
 }
