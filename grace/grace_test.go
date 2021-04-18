@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap/zaptest"
+	"go.uber.org/zap"
 )
 
 func TestGrace(t *testing.T) {
@@ -17,7 +17,7 @@ func TestGrace(t *testing.T) {
 		t.Run(fmt.Sprintf("should cancel context on %s signal", sig), func(t *testing.T) {
 			is := assert.New(t)
 
-			log := zaptest.NewLogger(t)
+			log := zap.NewNop()
 			ctx := NewGracefulContext(log)
 
 			// waiting to run the goroutine and channel of signals
