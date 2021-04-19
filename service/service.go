@@ -2,17 +2,19 @@ package service
 
 import (
 	"context"
-	"errors"
 
+	"github.com/spf13/viper"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
+
+	"github.com/im-kulikov/helium/group"
 )
 
 type (
 	// runnable interface
 	runner interface {
 		Start(context.Context) error
-		Stop() error
+		Stop(context.Context)
 	}
 
 	// Service interface
@@ -22,25 +24,33 @@ type (
 	}
 
 	// Group wrapper around group of services
-	Group runner
+	Group interface {
+		Run(context.Context) error
+	}
 
 	// Params for service module
 	Params struct {
 		dig.In
 
 		Logger *zap.Logger
+		Config *viper.Viper
 		Group  []Service `group:"services"`
 	}
 
-	group struct {
-		log   *zap.Logger
-		items []Service
+	multiple struct {
+		*zap.Logger
+		group.Service
 	}
 )
 
+const ShutdownTimeoutParam = "shutdown_timeout"
+
 // create group of services
 func newGroup(p Params) Group {
-	services := make([]Service, 0, len(p.Group))
+	run := &multiple{
+		Logger:  p.Logger,
+		Service: group.New(group.WithShutdownTimeout(p.Config.GetDuration(ShutdownTimeoutParam))),
+	}
 
 	for i := range p.Group {
 		if p.Group[i] == nil {
@@ -48,56 +58,24 @@ func newGroup(p Params) Group {
 			continue
 		}
 
-		p.Logger.Info("add service", zap.String("name", p.Group[i].Name()))
-
-		services = append(services, p.Group[i])
+		run.Add(run.prepareActor(p.Group[i]))
 	}
 
-	return &group{
-		log:   p.Logger,
-		items: services,
-	}
+	return run
 }
 
-// Start all services
-func (s *group) Start(ctx context.Context) error {
-	for i, svc := range s.items {
-		if svc == nil {
-			s.log.Warn("ignore nil service", zap.Int("position", i))
+func (m *multiple) prepareActor(svc Service) (group.Callback, group.Shutdown) {
+	m.Info("add service", zap.String("name", svc.Name()))
 
-			continue
+	return func(ctx context.Context) error {
+			m.Info("run service", zap.String("name", svc.Name()))
+
+			return svc.Start(ctx)
+		},
+
+		func(ctx context.Context) {
+			m.Info("stop service", zap.String("name", svc.Name()))
+
+			svc.Stop(ctx)
 		}
-		s.log.Info("run service", zap.String("name", svc.Name()))
-
-		if err := svc.Start(ctx); err != nil {
-			return err
-		}
-	}
-
-	return nil
-}
-
-// Stop all services
-func (s *group) Stop() error {
-	var lastError error
-	for i, svc := range s.items {
-		if svc == nil {
-			s.log.Warn("ignore nil service",
-				zap.Int("position", i))
-
-			continue
-		}
-
-		err := svc.Stop()
-
-		s.log.Info("stop service",
-			zap.String("name", svc.Name()),
-			zap.Error(err))
-
-		if err != nil && !errors.Is(err, context.DeadlineExceeded) {
-			lastError = err
-		}
-	}
-
-	return lastError
 }

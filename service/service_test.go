@@ -3,21 +3,25 @@ package service
 import (
 	"context"
 	"strconv"
+	"sync"
 	"testing"
+	"time"
 
-	"github.com/im-kulikov/helium/internal"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/atomic"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
+
+	"github.com/im-kulikov/helium/internal"
 )
 
 type (
 	testWorker struct {
 		number  int
 		errored bool
-		started bool
+		started *atomic.Bool
 	}
 
 	testServiceOut struct {
@@ -42,20 +46,24 @@ var (
 	_ Service = (*testWorker)(nil)
 )
 
-func (t *testWorker) Start(context.Context) error {
+func (t *testWorker) Start(ctx context.Context) error {
 	if t.errored {
 		return testError
 	}
-	t.started = true
+
+	t.started.Toggle()
+
+	<-ctx.Done()
+
 	return nil
 }
 
-func (t *testWorker) Stop() error {
+func (t *testWorker) Stop(context.Context) {
 	if t.errored {
-		return testError
+		panic(testError)
 	}
-	t.started = false
-	return nil
+
+	t.started.Toggle()
 }
 
 func (t *testWorker) Name() string {
@@ -65,58 +73,72 @@ func (t *testWorker) Name() string {
 func newWorker() *testWorker {
 	return &testWorker{
 		number:  int(iter.Inc()),
-		started: false,
+		started: atomic.NewBool(false),
 	}
 }
 
 func TestServices(t *testing.T) {
-	count := 10
-	services := make([]Service, 0, count)
+	t.Run("should be ok", func(t *testing.T) {
+		count := 10
+		services := make([]Service, 0, count)
 
-	for i := 0; i < count; i++ {
-		services = append(services, newWorker())
-	}
-
-	// should ignore empty service
-	services = append(services, nil)
-
-	params := Params{
-		Logger: zaptest.NewLogger(t),
-		Group:  services,
-	}
-
-	{ // good case
-		svc := newGroup(params)
+		for i := 0; i < count; i++ {
+			services = append(services, newWorker())
+		}
 
 		// should ignore empty service
-		svc.(*group).items = append(svc.(*group).items, nil)
+		services = append(services, nil)
 
-		require.NoError(t, svc.Start(nil))
+		grp := newGroup(Params{
+			Group:  services,
+			Config: viper.New(),
+			Logger: zaptest.NewLogger(t),
+		})
+
+		ctx, cancel := context.WithCancel(context.Background())
+
+		group := new(sync.WaitGroup)
+		start := make(chan struct{})
+
+		group.Add(1)
+
+		go func() {
+			defer group.Done()
+
+			<-start
+			require.NoError(t, grp.Run(ctx))
+		}()
+
+		close(start)
+
+		<-time.After(time.Millisecond * 5)
+
 		for i := 0; i < count; i++ {
-			require.True(t, services[i].(*testWorker).started)
+			if wrk, ok := services[i].(*testWorker); ok && !services[i].(*testWorker).started.Load() {
+				t.Fatalf("worker(%d) should be started", wrk.number)
+			}
 		}
 
-		require.NoError(t, svc.Stop())
+		cancel()
+		group.Wait()
 		for i := 0; i < count; i++ {
-			require.False(t, services[i].(*testWorker).started)
+			require.False(t, services[i].(*testWorker).started.Load())
 		}
-	}
+	})
 
-	{ // bad case
+	t.Run("should panics on stop", func(t *testing.T) {
 		wrk := newWorker()
 		wrk.errored = true
 
-		svc := newGroup(Params{
-			Logger: params.Logger,
+		grp := newGroup(Params{
+			Config: viper.New(),
 			Group:  []Service{wrk},
+			Logger: zaptest.NewLogger(t),
 		})
 
-		require.EqualError(t, svc.Start(nil), testError.Error())
-		require.EqualError(t, svc.Stop(), testError.Error())
-		for i := 0; i < count; i++ {
-			require.False(t, services[i].(*testWorker).started)
-		}
-	}
+		require.False(t, wrk.started.Load())
+		require.Panics(t, func() { require.NoError(t, grp.Run(context.Background())) }, testError.Error())
+	})
 }
 
 func TestServicesFromDI(t *testing.T) {
@@ -160,10 +182,5 @@ func TestServicesFromDI(t *testing.T) {
 			services = append(services, newWorker())
 		}
 		return testServicesOut{Services: services}
-	}))
-
-	// should provide 10 services
-	require.NoError(t, di.Invoke(func(svc Group) {
-		require.Len(t, svc.(*group).items, cnt)
 	}))
 }
