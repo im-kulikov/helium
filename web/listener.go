@@ -3,7 +3,8 @@ package web
 import (
 	"context"
 	"fmt"
-	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/im-kulikov/helium/internal"
 	"github.com/im-kulikov/helium/service"
@@ -17,11 +18,12 @@ type (
 	}
 
 	listener struct {
-		name            string
-		skipErrors      bool
-		ignoreErrors    []error
-		server          Listener
-		shutdownTimeout time.Duration
+		logger *zap.Logger
+
+		name         string
+		skipErrors   bool
+		ignoreErrors []error
+		server       Listener
 	}
 
 	// ListenerOption options that allows to change
@@ -47,17 +49,20 @@ func ListenerIgnoreError(errors ...error) ListenerOption {
 	}
 }
 
-// ListenerShutdownTimeout allows changing the default shutdown timeout.
-func ListenerShutdownTimeout(v time.Duration) ListenerOption {
-	return func(l *listener) {
-		l.shutdownTimeout = v
-	}
-}
-
 // ListenerName allows changing the default listener name.
 func ListenerName(v string) ListenerOption {
 	return func(l *listener) {
 		l.name = v
+	}
+}
+
+func ListenerWithLogger(log *zap.Logger) ListenerOption {
+	return func(l *listener) {
+		if log == nil {
+			return
+		}
+
+		l.logger = log
 	}
 }
 
@@ -68,9 +73,8 @@ func NewListener(lis Listener, opts ...ListenerOption) (service.Service, error) 
 	}
 
 	s := &listener{
-		server:          lis,
-		skipErrors:      false,
-		shutdownTimeout: time.Second * 30,
+		server:     lis,
+		skipErrors: false,
 
 		// Default name
 		name: fmt.Sprintf("listener %T", lis),
@@ -89,43 +93,26 @@ func (l *listener) Name() string { return l.name }
 // Start tries to start the Listener and returns an error
 // if the Listener is empty. If something went wrong and
 // errors not ignored should panic.
-func (l *listener) Start(_ context.Context) error {
+func (l *listener) Start(context.Context) error {
 	if l.server == nil {
 		return l.catch(ErrEmptyListener)
 	}
 
-	go func() {
-		if err := l.catch(l.server.ListenAndServe()); err != nil {
-			fmt.Printf("could not start Listener: %v\n", err)
-			fatal(2)
-		}
-	}()
-
-	return nil
+	return l.catch(l.server.ListenAndServe())
 }
 
 // Stop tries to stop the Listener and returns an error
 // if something went wrong. Ignores errors that were passed
 // by options and if used skip errors.
-func (l *listener) Stop() error {
+func (l *listener) Stop(ctx context.Context) {
 	if l.server == nil {
-		return l.catch(ErrEmptyListener)
+		panic(ErrEmptyListener)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), l.shutdownTimeout)
-	defer cancel()
-
-	ch := make(chan error, 1)
-
-	go func() {
-		ch <- l.catch(l.server.Shutdown(ctx))
-	}()
-
-	select {
-	case <-ctx.Done():
-		return nil
-	case err := <-ch:
-		return err
+	if err := l.catch(l.server.Shutdown(ctx)); err != nil {
+		l.logger.Error("could not stop listener",
+			zap.String("name", l.name),
+			zap.Error(err))
 	}
 }
 
