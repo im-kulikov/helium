@@ -17,6 +17,7 @@
 * [Why Helium](#why-helium)
 * [About Helium and modules](#about-helium-and-modules)
     * [Preconfigure](#defaults-and-preconfigure)
+    * [Group](#group-actors)
     * [Services](#service-module)
     * [Logger](#logger-module)
     * [NATS](#nats-module)
@@ -51,6 +52,7 @@ The modular structure of helium consists of the following concepts
  
 It contains the following components for rapid prototyping of your projects:
 - Grace - [context](https://golang.org/pkg/context/) that helps you gracefully shutdown your application
+- Group - collects an actors and runs them concurrently, [see examples](#group-actors).
 - Logger - [zap](https://go.uber.org/zap) is blazing fast, structured, leveled logging in Go
 - DI - based on [DIG](https://go.uber.org/dig). A reflection based dependency injection toolkit for Go.
 - Module - set of tools for working with the DI component
@@ -66,38 +68,103 @@ It contains the following components for rapid prototyping of your projects:
 or do something with DI.
 
 **Example:**
+
 ```go
 package main
 
 import (
-	"github.com/im-kulikov/helium"
-	"github.com/im-kulikov/helium/settings"
+  "github.com/spf13/viper"
+  
+  "github.com/im-kulikov/helium"
+  "github.com/im-kulikov/helium/settings"
 )
+
+func defaults(v *viper.Viper) {
+    v.SetDefault("some-key", "default-value")
+}
 
 func main() {
     _, err := helium.New(&helium.Settings{
         Name: "Abc",
-        Defaults: func(cfg *settings.Core) {
-            cfg.Name = "TEST_NAME"
-            cfg.BuildTime = "TEST_BUILD_TIME"
-            cfg.BuildVersion = "TEST_BUILD_VERSION"
-        },
-    })
+        Defaults: defaults,
+    }, settings.Module)
     helium.Catch(err)
 }
 ``` 
+
+## Group (actors)
+
+*Helium* provides primitive to run actors concurrently and stop when
+- context will be canceled
+- context will be deadlined
+- any of actor will be done
+
+*Example*
+
+```go
+package main
+
+import (
+    "context"
+    "fmt"
+    "time"
+
+    "github.com/im-kulikov/helium/group"
+    "github.com/im-kulikov/helium/service"
+)
+
+func prepare(svc service.Service) (group.Callback, group.Shutdown) {
+    fmt.Println("added service", svc.Name())
+    return func(ctx context.Context) error {
+        fmt.Println("start service", svc.Name())
+        return svc.Start(ctx)
+    },
+    func(ctx context.Context) {
+        fmt.Println("stop service", svc.Name())
+        svc.Stop(ctx)
+    }
+}
+
+func runner(ctx context.Context, services []service.Service) error {
+    run := group.New(
+        group.WithIgnoreErrors(context.Canceled),
+        group.WithShutdownTimeout(time.Second * 30))
+    for _, svc := range services {
+        run.Add(prepare(svc))
+    }
+
+    // - wait until any actor will be stopped
+    // - wait until context will be canceled or deadlined
+    return run.Run(ctx)
+}
+```
 
 ### Service module
 
 *Helium* provide primitive for runnable services. That can be web-servers, workers, etc.
 
+
+*Settings (used for all services)*
+```yaml
+shutdown_timeout: 30s
+```
+
+*Examples*
+
 ```go
-type Service {
-    // runnable interface
+package service
+
+import "context"
+
+type Service interface {
     Start(context.Context) error
-    Stop() error
+    Stop(context.Context)
 
     Name() string 
+}
+
+type Group interface {
+  Run(context.Context) error
 }
 ```
 
@@ -107,21 +174,16 @@ You can pass into DI group of services and use them in `app.Run` method, for exa
 package main
 
 import (
-    "context"
-    
-    "github.com/im-kulikov/helium/service"
+  "context"
+
+  "github.com/im-kulikov/helium/service"
+  "github.com/oklog/oklog/pkg/group"
 )
 
 type app struct {}
 
-func (a *app) Run(ctx context.Context, svc service.Group) error {
-    if err := svc.Start(ctx); err != nil {
-        return err
-    }
-    
-    <-ctx.Done()
-
-    return svc.Stop()
+func (a *app) Run(ctx context.Context, group service.Group) error {
+  return group.Run(ctx)
 }
 ```
 
@@ -153,7 +215,7 @@ var _ = module.Module{
 }
 
 func (w *testWorker) Start(context.Context) error { return nil }
-func (w *testWorker) Stop() error { return nil }
+func (w *testWorker) Stop(context.Context) { }
 func (w *testWorker) Name() string { return w.name }
 
 func NewSingleOutService() OutParams {
@@ -173,10 +235,11 @@ package some_pkg
 
 import (
     "context"
+    
+    "go.uber.org/dig"
 
     "github.com/im-kulikov/helium/module"
     "github.com/im-kulikov/helium/service"
-    "go.uber.org/dig"
 )
 
 // for multiple services use `group:"services,flatten"`
@@ -195,7 +258,7 @@ var _ = module.Module{
 }
 
 func (w *testWorker) Start(context.Context) error { return nil }
-func (w *testWorker) Stop() error { return nil }
+func (w *testWorker) Stop(context.Context) { return nil }
 func (w *testWorker) Name() string { return w.name }
 
 func NewMultipleOut() OutParams {
@@ -447,8 +510,10 @@ Viper is a prioritized configuration registry. It maintains a set of configurati
     - [metrics](https://github.com/prometheus/client_golang) enpoint (by Prometheus)
     - [gRPC](https://github.com/golang/protobuf) endpoint
     - [Listener](https://github.com/im-kulikov/web/listener.go) allows provide custom web service and run it in scope. 
-    - You can pass `profile_handler` and/or `metric_handler`, that will be embedded into common handler,
-     and will be available to call them
+    - You can pass `pprof_handler` and/or `metric_handler`, that will be embedded into common handler,
+      and will be available to call them
+    - You can pass `api_listener`, `pprof_listener`, `metric_listener` to use them instead of network
+      and address from settings
     - **api** endpoint by passing http.Handler from DI
 - [`echo.Module`](https://github.com/go-helium/echo) boilerplate that preconfigures echo.Engine for you
     - with custom Binder / Logger / Validator / ErrorHandler
@@ -478,7 +543,6 @@ PPROF_SHUTDOWN_TIMEOUT=duration
 METRICS_ADDRESS=string
 METRICS_SHUTDOWN_TIMEOUT=duration
 API_ADDRESS=string
-API_SHUTDOWN_TIMEOUT=duration
 ```
 
 **Possible options for HTTP server**:
@@ -491,14 +555,12 @@ API_SHUTDOWN_TIMEOUT=duration
 - `write_timeout` - (duration) is the maximum duration before timing out writes of the response
 - `idle_timeout` - (duration) is the maximum amount of time to wait for the next request when keep-alives are enabled
 - `max_header_bytes` - (int) controls the maximum number of bytes the server will read parsing the request header's keys and values, including the request line
-- `shutdown_timeout` - (duration) context timeout for stopping server 
 
 **Possible options for gRPC server**:
 - `address` - (string) host and port
 - `network` - (string) tcp, udp, etc
 - `skip_errors` - allows ignore all errors
 - `disabled` - (bool) to disable server
-- `shutdown_timeout` - (duration) context timeout for stopping server 
 
 **Listener example:**
 ```go
@@ -587,20 +649,19 @@ type gRPCResult struct {
 }
 
 var _ = module.Module{
-  {Constructor: NewDefaultGRPCServer},
+  {Constructor: newDefaultGRPCServer},
 }
 
-// NewDefaultGRPCServer returns gRPCResult that would be used
+// newDefaultGRPCServer returns gRPCResult that would be used
 // to create gRPC Service and run it with other web-services.
 //
 // See web.newDefaultGRPCServer for more information.
-func NewDefaultGRPCServer() gRPCResult {
+func newDefaultGRPCServer() gRPCResult {
   return gRPCResult{
     // config key that would be used
     // For exmpale :
     // - <key>.address
     // - <key>.network
-    // - <key>.shutdown_timeout
     // - etc
     Key:    "grpc",
     Server: grpc.NewServer(),
@@ -623,7 +684,6 @@ func NewDefaultGRPCServer() gRPCResult {
 api:
   address: :8080
   debug: true
-  shutdown_timeout: 10s
 
 logger:
   level: debug
@@ -636,18 +696,19 @@ package main
 
 import (
 	"context"
-	"github.com/im-kulikov/helium/service"
-"net/http"
+    "net/http"
+	
 
-	"github.com/chapsuk/mserv"
+	"go.uber.org/dig"
+	"go.uber.org/zap"
+	
 	"github.com/im-kulikov/helium"
 	"github.com/im-kulikov/helium/grace"
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
+	"github.com/im-kulikov/helium/service"
 	"github.com/im-kulikov/helium/settings"
 	"github.com/im-kulikov/helium/web"
-	"go.uber.org/dig"
-	"go.uber.org/zap"
 )
 
 func main() {
@@ -680,27 +741,15 @@ func handler() http.Handler {
 	return h
 }
 
-func runner(ctx context.Context, svc service.Group, l *zap.Logger) error {
-	l.Info("run services")
-	if err := svc.Start(ctx); err != nil {
-        return err
-    }
-
-	l.Info("application started")
-	<-ctx.Done()
-
-	l.Info("stop services", zap.Error(svc.Stop()))
-
-	l.Info("application stopped")
-    
-    return nil
+func runner(ctx context.Context, svc service.Group) error {
+	return svc.Run(ctx)
 }
 ```
 
 ## Supported Go versions
 
 Helium is available as a [Go module](https://github.com/golang/go/wiki/Modules).
-- 1.11+
+- 1.13+
 
 ## Contribute
 
