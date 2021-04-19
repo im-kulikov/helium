@@ -4,12 +4,13 @@ import (
 	"context"
 	"testing"
 
-	"github.com/im-kulikov/helium/logger"
-	"github.com/im-kulikov/helium/module"
-	"github.com/im-kulikov/helium/service"
-	"github.com/im-kulikov/helium/settings"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/dig"
+	"go.uber.org/zap"
+
+	"github.com/im-kulikov/helium/module"
+	"github.com/im-kulikov/helium/service"
 )
 
 type errService struct {
@@ -25,12 +26,10 @@ func (e errService) Start(_ context.Context) error {
 	return testError
 }
 
-func (e errService) Stop() error {
-	if !e.stop {
-		return nil
+func (e errService) Stop(context.Context) {
+	if e.stop {
+		panic(testError)
 	}
-
-	return testError
 }
 
 func (e errService) Name() string { return "errService" }
@@ -41,9 +40,8 @@ func TestDefaultApp(t *testing.T) {
 
 		h, err := New(&Settings{},
 			DefaultApp,
-			settings.Module,
-			logger.Module,
-			service.Module,
+			module.New(viper.New),
+			module.New(zap.NewNop),
 			module.New(func() context.Context { return ctx }),
 		)
 
@@ -60,9 +58,8 @@ func TestDefaultApp(t *testing.T) {
 
 		h, err := New(&Settings{},
 			DefaultApp,
-			settings.Module,
-			logger.Module,
-			service.Module,
+			module.New(viper.New),
+			module.New(zap.NewNop),
 			module.New(func() context.Context { return ctx }),
 			module.New(func() service.Service { return errService{start: true} }, dig.Group("services")),
 		)
@@ -70,9 +67,9 @@ func TestDefaultApp(t *testing.T) {
 		require.NotNil(t, h)
 		require.NoError(t, err)
 
-		cancel()
-
 		require.EqualError(t, h.Run(), testError.Error())
+
+		cancel()
 	})
 
 	t.Run("default application with stop err", func(t *testing.T) {
@@ -80,9 +77,8 @@ func TestDefaultApp(t *testing.T) {
 
 		h, err := New(&Settings{},
 			DefaultApp,
-			settings.Module,
-			logger.Module,
-			service.Module,
+			module.New(viper.New),
+			module.New(zap.NewNop),
 			module.New(func() context.Context { return ctx }),
 			module.New(func() service.Service { return errService{stop: true} }, dig.Group("services")),
 		)
@@ -91,7 +87,10 @@ func TestDefaultApp(t *testing.T) {
 		require.NoError(t, err)
 
 		cancel()
+		require.Panics(t, func() {
+			t.Helper()
 
-		require.EqualError(t, h.Run(), testError.Error())
+			require.NoError(t, h.Run())
+		}, testError.Error())
 	})
 }
