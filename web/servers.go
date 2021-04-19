@@ -17,7 +17,7 @@ import (
 )
 
 type (
-	// APIParams struct
+	// APIParams struct.
 	APIParams struct {
 		dig.In
 
@@ -27,6 +27,7 @@ type (
 		Listener net.Listener `name:"api_listener" optional:"true"`
 	}
 
+	// HTTPParams struct.
 	HTTPParams struct {
 		dig.In
 
@@ -38,7 +39,7 @@ type (
 		Listener net.Listener `name:"http_listener" optional:"true"`
 	}
 
-	// ServerResult struct
+	// ServerResult struct.
 	ServerResult struct {
 		dig.Out
 
@@ -80,10 +81,14 @@ const (
 	gRPCServer    = "grpc"
 	profileServer = "pprof"
 	metricsServer = "metric"
+
+	// ErrEmptyLogger is raised when empty logger passed into New function.
+	ErrEmptyLogger = internal.Error("empty logger")
 )
 
 var (
 	// DefaultServersModule of web base structs.
+	// nolint:gochecknoglobals
 	DefaultServersModule = module.Combine(
 		DefaultGRPCModule,
 		ProfilerModule,
@@ -92,19 +97,20 @@ var (
 	)
 
 	// APIModule defines API server module.
+	// nolint:gochecknoglobals
 	APIModule = module.New(NewAPIServer)
 
 	// ProfilerModule defines pprof server module.
+	// nolint:gochecknoglobals
 	ProfilerModule = module.New(newProfileServer)
 
 	// MetricsModule defines prometheus server module.
+	// nolint:gochecknoglobals
 	MetricsModule = module.New(newMetricServer)
 
 	// DefaultGRPCModule defines default gRPC server module.
+	// nolint:gochecknoglobals
 	DefaultGRPCModule = module.New(newDefaultGRPCServer)
-
-	// ErrEmptyLogger is raised when empty logger passed into New function.
-	ErrEmptyLogger = internal.Error("empty logger")
 )
 
 func newProfileServer(p profileParams) (ServerResult, error) {
@@ -114,9 +120,11 @@ func newProfileServer(p profileParams) (ServerResult, error) {
 	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
 	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
 	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
+
 	if p.Handler != nil {
 		mux.Handle("/", p.Handler)
 	}
+
 	return NewHTTPServer(HTTPParams{
 		Config:   p.Viper,
 		Logger:   p.Logger,
@@ -130,9 +138,11 @@ func newProfileServer(p profileParams) (ServerResult, error) {
 func newMetricServer(p metricParams) (ServerResult, error) {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
+
 	if p.Handler != nil {
 		mux.Handle("/", p.Handler)
 	}
+
 	return NewHTTPServer(HTTPParams{
 		Config:   p.Viper,
 		Logger:   p.Logger,
@@ -143,7 +153,7 @@ func newMetricServer(p metricParams) (ServerResult, error) {
 	})
 }
 
-// NewAPIServer creates api server by http.Handler from DI container
+// NewAPIServer creates api server by http.Handler from DI container.
 func NewAPIServer(p APIParams) (ServerResult, error) {
 	return NewHTTPServer(HTTPParams{
 		Config:   p.Config,
@@ -169,18 +179,22 @@ func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
 		return ServerResult{}, ErrEmptyLogger
 	case p.Viper == nil:
 		p.Logger.Info("Empty config for gRPC server, skip")
+
 		return ServerResult{}, nil
 	case p.Viper.GetBool(p.Key + ".disabled"):
 		p.Logger.Info("Server disabled",
 			zap.String("name", p.Name))
+
 		return ServerResult{}, nil
 	case p.Server == nil:
 		p.Logger.Info("Empty server, skip",
 			zap.String("name", p.Name))
+
 		return ServerResult{}, nil
 	}
 
 	var address string
+
 	options := []GRPCOption{
 		GRPCName(p.Name),
 		GRPCWithLogger(p.Logger),
@@ -211,19 +225,22 @@ func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
 	return ServerResult{Server: serve}, err
 }
 
-// NewHTTPServer creates http-server that will be embedded into multi-server
+// NewHTTPServer creates http-server that will be embedded into multi-server.
 func NewHTTPServer(p HTTPParams) (ServerResult, error) {
 	switch {
 	case p.Logger == nil:
 		return ServerResult{}, ErrEmptyLogger
 	case p.Key == "" || p.Config == nil:
 		p.Logger.Info("Empty config or key for http server, skip", zap.String("key", p.Key))
+
 		return ServerResult{}, nil
 	case p.Handler == nil:
 		p.Logger.Info("Empty handler, skip", zap.String("name", p.Key))
+
 		return ServerResult{}, nil
 	case p.Config.GetBool(p.Key + ".disabled"):
 		p.Logger.Info("Server disabled", zap.String("name", p.Key))
+
 		return ServerResult{}, nil
 	}
 

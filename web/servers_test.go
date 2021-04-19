@@ -69,6 +69,7 @@ func testHTTPHandler(assert *require.Assertions) http.Handler {
 		_, err := w.Write(expectResult)
 		assert.NoError(err)
 	})
+
 	return mux
 }
 
@@ -462,6 +463,7 @@ func TestServers(t *testing.T) {
 							},
 						}
 
+						// nolint:noctx
 						resp, err := client.Get("http://" + lis.Addr().String() + "/test")
 						require.NoError(t, err)
 

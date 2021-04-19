@@ -38,7 +38,7 @@ const (
 	ErrEmptyGRPCAddress = internal.Error("empty gRPC address")
 )
 
-// GRPCSkipErrors allows to skip any errors
+// GRPCSkipErrors allows to skip any errors.
 func GRPCSkipErrors() GRPCOption {
 	return func(g *gRPC) {
 		g.skipErrors = true

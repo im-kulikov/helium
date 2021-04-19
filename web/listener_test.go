@@ -2,12 +2,13 @@ package web
 
 import (
 	"context"
-	"errors"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+
+	"github.com/im-kulikov/helium/internal"
 )
 
 type (
@@ -17,7 +18,11 @@ type (
 	}
 )
 
-const listenerTestName = "test-name"
+const (
+	listenerTestName = "test-name"
+
+	errStopping = internal.Error("stopping")
+)
 
 var _ Listener = (*fakeListener)(nil)
 
@@ -31,6 +36,7 @@ func (f fakeListener) Shutdown(context.Context) error {
 
 func TestListenerService(t *testing.T) {
 	log := zap.NewNop()
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond)
 	defer cancel()
 
@@ -76,7 +82,7 @@ func TestListenerService(t *testing.T) {
 	})
 
 	t.Run("should skip errors", func(t *testing.T) {
-		s := &fakeListener{stopError: errors.New("stopping")}
+		s := &fakeListener{stopError: errStopping}
 		serve, err := NewListener(s, ListenerSkipErrors())
 		require.NoError(t, err)
 		require.NotPanics(t, func() {

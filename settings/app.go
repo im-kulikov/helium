@@ -1,8 +1,9 @@
 package settings
 
 import (
-	"github.com/im-kulikov/helium/module"
 	"go.uber.org/dig"
+
+	"github.com/im-kulikov/helium/module"
 )
 
 type (
@@ -10,7 +11,7 @@ type (
 	// Helium calls `defaults` handler at the end in `New` method.
 	Defaults interface{}
 
-	// Core configuration
+	// Core configuration.
 	Core struct {
 		File         string
 		Type         string
@@ -21,28 +22,28 @@ type (
 	}
 )
 
-// DIProvider wrap di into provider
+// DIProvider wrap di into provider.
 func DIProvider(di *dig.Container) *module.Provider {
 	return &module.Provider{
 		Constructor: func() *dig.Container { return di },
 	}
 }
 
-// Provider - wrap app config to provider
+// Provider - wrap app config to provider.
 func (a *Core) Provider() *module.Provider {
 	return &module.Provider{
 		Constructor: func() *Core { return a },
 	}
 }
 
-// SafeType returns config type, default config type: yml
-// returns yml if config type not supported
+// SafeType returns config type, default config type: yaml.
+// returns yml if config type not supported.
+// nolint:goconst
 func (a Core) SafeType() string {
-	switch t := a.Type; t {
-	case "toml":
-	case "yml", "yaml":
+	switch a.Type {
+	case "toml", "yml", "yaml":
+		return a.Type
 	default:
-		return "yml"
+		return "yaml"
 	}
-	return a.Type
 }

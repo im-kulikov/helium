@@ -58,7 +58,8 @@ func TestGRPCService(t *testing.T) {
 	t.Run("should fail on net.Listen", func(t *testing.T) {
 		srv, err := NewGRPCService(grpc.NewServer(), GRPCListenAddress("test:80"))
 		require.Nil(t, srv)
-		require.EqualError(t, err, "listen tcp: lookup test: no such host")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "listen tcp: lookup test")
 	})
 
 	t.Run("should ignore ErrServerStopped", func(t *testing.T) {

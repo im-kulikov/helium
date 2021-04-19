@@ -8,26 +8,27 @@ import (
 	"reflect"
 	"strings"
 
-	"github.com/im-kulikov/helium/logger"
-	"github.com/im-kulikov/helium/module"
-	"github.com/im-kulikov/helium/settings"
 	"go.uber.org/atomic"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
+
+	"github.com/im-kulikov/helium/logger"
+	"github.com/im-kulikov/helium/module"
+	"github.com/im-kulikov/helium/settings"
 )
 
 type (
-	// App implementation for helium
+	// App implementation for helium.
 	App interface {
 		Run(ctx context.Context) error
 	}
 
-	// Helium struct
+	// Helium struct.
 	Helium struct {
 		di *dig.Container
 	}
 
-	// Settings struct
+	// Settings struct.
 	Settings struct {
 		File         string
 		Type         string
@@ -40,11 +41,14 @@ type (
 )
 
 var (
-	appName    = atomic.NewString("helium")
+	// nolint:gochecknoglobals
+	appName = atomic.NewString("helium")
+
+	// nolint:gochecknoglobals
 	appVersion = atomic.NewString("dev")
 )
 
-// New helium instance
+// New helium instance.
 func New(cfg *Settings, mod ...module.Module) (*Helium, error) {
 	h := &Helium{di: dig.New()}
 
@@ -54,6 +58,7 @@ func New(cfg *Settings, mod ...module.Module) (*Helium, error) {
 		if cfg.Prefix == "" {
 			cfg.Prefix = cfg.Name
 		}
+
 		cfg.Prefix = strings.ToUpper(cfg.Prefix)
 
 		if tmp := os.Getenv(cfg.Prefix + "_CONFIG"); tmp != "" {
@@ -91,19 +96,19 @@ func New(cfg *Settings, mod ...module.Module) (*Helium, error) {
 	return h, h.di.Invoke(cfg.Defaults)
 }
 
-// Invoke dependencies from DI container
+// Invoke dependencies from DI container.
 func (h Helium) Invoke(fn interface{}, args ...dig.InvokeOption) error {
 	return h.di.Invoke(fn, args...)
 }
 
-// Run trying invoke app instance from DI container and start app with Run call
+// Run trying invoke app instance from DI container and start app with Run call.
 func (h Helium) Run() error {
 	return h.di.Invoke(func(ctx context.Context, app App) error {
 		return app.Run(ctx)
 	})
 }
 
-// Catch errors
+// Catch errors.
 func Catch(err error) {
 	if err == nil {
 		return
@@ -122,8 +127,7 @@ func Catch(err error) {
 	}
 }
 
-// CatchTrace catch errors for debugging
-// use that function just for debug your application
+// CatchTrace catch errors for debugging use that function just for debug your application.
 func CatchTrace(err error) {
 	if err == nil {
 		return
@@ -146,10 +150,14 @@ loop:
 			fn = v.FieldByName("Func")
 		}
 
+		// nolint:forbidigo
 		fmt.Printf("Place: %#v\nReason: %s\n\n", fn, err)
 
-		if err, ok = v.FieldByName("Reason").Interface().(error); !ok {
-			err = v.Interface().(error)
+		if err, ok = v.FieldByName("Reason").Interface().(error); ok {
+			continue
+		}
+
+		if err, ok = v.Interface().(error); ok {
 			break
 		}
 	}

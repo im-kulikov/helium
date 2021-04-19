@@ -5,10 +5,10 @@ import (
 )
 
 type (
-	// Module type
+	// Module type.
 	Module []*Provider
 
-	// Provider struct
+	// Provider struct.
 	Provider struct {
 		Constructor interface{}
 		Options     []dig.ProvideOption
@@ -31,6 +31,7 @@ func Combine(mods ...Module) Module {
 	for _, mod := range mods {
 		result = append(result, mod...)
 	}
+
 	return result
 }
 
@@ -40,6 +41,7 @@ func (m Module) Append(mods ...Module) Module {
 	for _, mod := range mods {
 		result = append(result, mod...)
 	}
+
 	return result
 }
 
@@ -60,5 +62,6 @@ func Provide(dic *dig.Container, providers Module) error {
 			return err
 		}
 	}
+
 	return nil
 }

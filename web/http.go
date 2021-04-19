@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -158,7 +159,7 @@ func (s *httpService) Stop(ctx context.Context) {
 }
 
 func (s *httpService) catch(err error) error {
-	if s.skipErrors || err == http.ErrServerClosed {
+	if s.skipErrors || errors.Is(err, http.ErrServerClosed) {
 		return nil
 	}
 

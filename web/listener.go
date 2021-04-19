@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"go.uber.org/zap"
@@ -56,6 +57,7 @@ func ListenerName(v string) ListenerOption {
 	}
 }
 
+// ListenerWithLogger allows to set custom zap.Logger.
 func ListenerWithLogger(log *zap.Logger) ListenerOption {
 	return func(l *listener) {
 		if log == nil {
@@ -122,7 +124,7 @@ func (l *listener) catch(err error) error {
 	}
 
 	for i := range l.ignoreErrors {
-		if l.ignoreErrors[i] == err {
+		if errors.Is(err, l.ignoreErrors[i]) {
 			return nil
 		}
 	}

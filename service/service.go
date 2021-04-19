@@ -11,24 +11,23 @@ import (
 )
 
 type (
-	// runnable interface
 	runner interface {
 		Start(context.Context) error
 		Stop(context.Context)
 	}
 
-	// Service interface
+	// Service interface.
 	Service interface {
 		runner
 		Name() string
 	}
 
-	// Group wrapper around group of services
+	// Group wrapper around group of servicesl.
 	Group interface {
 		Run(context.Context) error
 	}
 
-	// Params for service module
+	// Params for service module.
 	Params struct {
 		dig.In
 
@@ -43,9 +42,10 @@ type (
 	}
 )
 
+// ShutdownTimeoutParam name for viper setting.
 const ShutdownTimeoutParam = "shutdown_timeout"
 
-// create group of services
+// create group of services.
 func newGroup(p Params) Group {
 	run := &multiple{
 		Logger:  p.Logger,
@@ -55,6 +55,7 @@ func newGroup(p Params) Group {
 	for i := range p.Group {
 		if p.Group[i] == nil {
 			p.Logger.Warn("ignore nil service", zap.Int("position", i))
+
 			continue
 		}
 

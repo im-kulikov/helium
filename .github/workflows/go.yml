@@ -5,6 +5,10 @@ jobs:
   build:
     name: Build
     runs-on: ubuntu-latest
+
+    env:
+      GO111MODULE: on
+
     strategy:
       matrix:
         go: [ '1.14.x', '1.15.x', '1.16.x' ]
@@ -26,13 +30,12 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-go-${{ matrix.go }}-
 
-    - name: Linter
-      run: |
-        go get -v golang.org/x/lint/golint
-        golint -set_exit_status ./...
+    - name: golangci-lint
+      with: { version: latest }
+      uses: golangci/golangci-lint-action@v2
 
     - name: Tests
-      run: go test -coverprofile=coverage.txt -covermode=atomic ./...
+      run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1

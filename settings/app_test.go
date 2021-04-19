@@ -3,9 +3,8 @@ package settings
 import (
 	"testing"
 
-	"go.uber.org/dig"
-
 	"github.com/stretchr/testify/require"
+	"go.uber.org/dig"
 )
 
 type (
@@ -19,7 +18,8 @@ func TestApp(t *testing.T) {
 		provider := DIProvider(di)
 		require.NotNil(t, provider)
 		require.IsType(t, diProviderType(nil), provider.Constructor)
-		diProvider := provider.Constructor.(diProviderType)
+		diProvider, ok := provider.Constructor.(diProviderType)
+		require.True(t, ok)
 		require.Equal(t, di, diProvider())
 	})
 
@@ -29,7 +29,8 @@ func TestApp(t *testing.T) {
 		provider := cfg.Provider()
 		require.NotNil(t, provider)
 		require.IsType(t, coreProviderType(nil), provider.Constructor)
-		appProvider := provider.Constructor.(coreProviderType)
+		appProvider, ok := provider.Constructor.(coreProviderType)
+		require.True(t, ok)
 		require.Equal(t, cfg, appProvider())
 	})
 
@@ -41,7 +42,7 @@ func TestApp(t *testing.T) {
 			cfg.Type = item
 
 			if item == "bad" {
-				item = "yml"
+				item = "yaml"
 			}
 
 			require.Equal(t, item, cfg.SafeType())

@@ -3,21 +3,24 @@ package settings
 import (
 	"strings"
 
-	"github.com/im-kulikov/helium/module"
 	"github.com/spf13/viper"
+
+	"github.com/im-kulikov/helium/module"
 )
 
-// Module of config things
+// Module of config things.
+// nolint:gochecknoglobals
 var Module = module.Module{
 	{Constructor: New},
 }
 
+// nolint:gochecknoglobals
 var global = viper.New()
 
-// Viper returns global Viper instance
+// Viper returns global Viper instance.
 func Viper() *viper.Viper { return global }
 
-// New init viper settings
+// New init viper settings.
 func New(app *Core) (*viper.Viper, error) {
 	v := viper.New()
 	global = v
@@ -28,8 +31,8 @@ func New(app *Core) (*viper.Viper, error) {
 	if len(app.File) > 0 {
 		v.SetConfigType(app.SafeType())
 		v.SetConfigFile(app.File)
-		err := v.ReadInConfig()
-		if err != nil {
+
+		if err := v.ReadInConfig(); err != nil {
 			return nil, err
 		}
 	}

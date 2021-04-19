@@ -2,7 +2,6 @@ package helium
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,13 +11,14 @@ import (
 	"testing"
 
 	"bou.ke/monkey"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/dig"
+	"go.uber.org/zap"
+
 	"github.com/im-kulikov/helium/grace"
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/settings"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/dig"
-	"go.uber.org/zap"
 )
 
 type (
@@ -160,11 +160,10 @@ func TestHelium(t *testing.T) {
 			defer monkey.UnpatchAll()
 
 			monkey.Patch(logger.NewLogger, func(*logger.Config, *settings.Core) (*zap.Logger, error) {
-				return nil, errors.New("test")
+				return nil, testError
 			})
 			defer monkey.Unpatch(logger.NewLogger)
-
-			err := errors.New("test")
+			err := testError
 			Catch(err)
 			require.Equal(t, 2, exitCode)
 		})
@@ -187,7 +186,7 @@ func TestHelium(t *testing.T) {
 			})
 			defer monkey.Unpatch(logger.NewLogger)
 
-			err := errors.New("test")
+			err := testError
 			Catch(err)
 			require.Equal(t, 1, exitCode)
 		})
@@ -212,13 +211,14 @@ func TestHelium(t *testing.T) {
 
 			defer monkey.UnpatchAll()
 
+			// nolint:forbidigo
 			monkey.Patch(fmt.Printf, func(string, ...interface{}) (int, error) {
 				return 0, nil
 			})
 
 			require.Panics(t, func() {
 				CatchTrace(
-					errors.New("test"))
+					testError)
 			})
 
 			require.Empty(t, exitCode)

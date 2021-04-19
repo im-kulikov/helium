@@ -10,7 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// NewGracefulContext returns graceful context
+// NewGracefulContext returns graceful context.
 func NewGracefulContext(l *zap.Logger) context.Context {
 	ctx, _ := signal.NotifyContext(context.Background(),
 		syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)

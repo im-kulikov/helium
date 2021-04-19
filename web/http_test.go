@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"crypto/tls"
-	"errors"
 	"net"
 	"net/http"
 	"testing"
@@ -14,6 +13,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 
 	"github.com/im-kulikov/helium/group"
+	"github.com/im-kulikov/helium/internal"
 )
 
 func TestHTTPService(t *testing.T) {
@@ -60,7 +60,8 @@ func TestHTTPService(t *testing.T) {
 	t.Run("should fail on net.Listen", func(t *testing.T) {
 		srv, err := NewHTTPService(&http.Server{}, HTTPListenAddress("test:80"))
 		require.Nil(t, srv)
-		require.EqualError(t, err, "listen tcp: lookup test: no such host")
+		require.Error(t, err)
+		require.Contains(t, err.Error(), "listen tcp: lookup test")
 	})
 
 	t.Run("should fail for serve", func(t *testing.T) {
@@ -99,9 +100,10 @@ func TestHTTPService(t *testing.T) {
 	t.Run("should not fail for tls", func(t *testing.T) {
 		lis := bufconn.Listen(listenSize)
 		s := &http.Server{
-			TLSConfig: &tls.Config{
+			// nolint:gosec
+			TLSConfig: &tls.Config{ // #nosec G402: TLS MinVersion too low.
 				GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {
-					return nil, errors.New("test")
+					return nil, internal.Error("test")
 				},
 			},
 		}

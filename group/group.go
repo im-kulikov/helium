@@ -38,6 +38,7 @@ const defaultShutdown = time.Second * 5
 var (
 	_ Service = (*group)(nil)
 
+	// nolint:gochecknoglobals
 	defaultIgnoredErrors = []error{
 		context.Canceled,
 		context.DeadlineExceeded,

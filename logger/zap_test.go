@@ -5,12 +5,13 @@ import (
 	"testing"
 
 	"bou.ke/monkey"
-	"github.com/im-kulikov/helium/settings"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/im-kulikov/helium/settings"
 )
 
 func TestZapLogger(t *testing.T) {

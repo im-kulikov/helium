@@ -3,13 +3,14 @@ package logger
 import (
 	"strings"
 
-	"github.com/im-kulikov/helium/settings"
 	"github.com/spf13/viper"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/im-kulikov/helium/settings"
 )
 
-// Config for logger
+// Config for logger.
 type Config struct {
 	Level        string
 	TraceLevel   string
@@ -27,7 +28,7 @@ const (
 	defaultSamplingThereafter = 100
 )
 
-// NewLoggerConfig returns logger config
+// NewLoggerConfig returns logger config.
 func NewLoggerConfig(v *viper.Viper) *Config {
 	cfg := &Config{
 		Debug:        v.GetBool("debug"),
@@ -58,44 +59,43 @@ func NewLoggerConfig(v *viper.Viper) *Config {
 	return cfg
 }
 
-// SafeLevel returns valid logger level or default
+// SafeLevel returns valid logger level or default.
 func SafeLevel(lvl string, defaultLvl zapcore.Level) zap.AtomicLevel {
 	switch strings.ToLower(lvl) {
-	case "debug":
+	case zapcore.DebugLevel.String():
 		return zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	case "info":
+	case zapcore.InfoLevel.String():
 		return zap.NewAtomicLevelAt(zapcore.InfoLevel)
-	case "warn":
+	case zapcore.WarnLevel.String():
 		return zap.NewAtomicLevelAt(zapcore.WarnLevel)
-	case "error":
+	case zapcore.ErrorLevel.String():
 		return zap.NewAtomicLevelAt(zapcore.ErrorLevel)
-	case "panic":
+	case zapcore.PanicLevel.String():
 		return zap.NewAtomicLevelAt(zapcore.PanicLevel)
-	case "fatal":
+	case zapcore.FatalLevel.String():
 		return zap.NewAtomicLevelAt(zapcore.FatalLevel)
 	default:
 		return zap.NewAtomicLevelAt(defaultLvl)
 	}
 }
 
-// SafeFormat returns valid logger output format
-// use json by default
+// SafeFormat returns valid logger output format use json by default.
+// nolint:goconst
 func (c Config) SafeFormat() string {
 	switch c.Format {
-	case "console":
-	case "json":
+	case "console", "json":
+		return c.Format
 	default:
 		return "json"
 	}
-	return c.Format
 }
 
-// NewSugaredLogger converts from zap.Logger
+// NewSugaredLogger converts from zap.Logger.
 func NewSugaredLogger(log *zap.Logger) *zap.SugaredLogger {
 	return log.Sugar()
 }
 
-// NewLogger init logger
+// NewLogger init logger.
 func NewLogger(lcfg *Config, app *settings.Core) (*zap.Logger, error) {
 	var cfg zap.Config
 	if lcfg.Debug {

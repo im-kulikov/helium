@@ -3,7 +3,7 @@ package logger
 import "go.uber.org/zap"
 
 type (
-	// StdLogger interface
+	// StdLogger interface.
 	StdLogger interface {
 		Fatal(v ...interface{})
 		Fatalf(format string, v ...interface{})
@@ -36,7 +36,7 @@ func (s stdLogger) Fatalf(format string, v ...interface{}) {
 	s.SugaredLogger.Fatalf(format, v...)
 }
 
-// NewStdLogger implementation of StdLogger interface
+// NewStdLogger implementation of StdLogger interface.
 func NewStdLogger(z *zap.Logger) StdLogger {
 	return stdLogger{
 		SugaredLogger: z.

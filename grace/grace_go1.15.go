@@ -11,7 +11,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// NewGracefulContext returns graceful context
+// NewGracefulContext returns graceful context.
 func NewGracefulContext(l *zap.Logger) context.Context {
 	ctx, cancel := context.WithCancel(context.Background())
 	go func() {
