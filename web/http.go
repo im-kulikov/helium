@@ -5,7 +5,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"time"
+
+	"go.uber.org/zap"
 
 	"github.com/im-kulikov/helium/internal"
 	"github.com/im-kulikov/helium/service"
@@ -13,12 +14,14 @@ import (
 
 type (
 	httpService struct {
-		skipErrors      bool
-		name            string
-		address         string
-		network         string
-		server          *http.Server
-		shutdownTimeout time.Duration
+		logger *zap.Logger
+
+		skipErrors bool
+		name       string
+		address    string
+		network    string
+		listener   net.Listener
+		server     *http.Server
 	}
 
 	// HTTPOption interface that allows
@@ -27,20 +30,12 @@ type (
 )
 
 const (
-	// ErrEmptyHTTPServer is raised when called New
-	// or httpService methods with empty http.Server.
+	// ErrEmptyHTTPServer is raised when called New or httpService methods with empty http.Server.
 	ErrEmptyHTTPServer = internal.Error("empty http server")
 
 	// ErrEmptyHTTPAddress is raised when passed empty address to NewHTTPService.
 	ErrEmptyHTTPAddress = internal.Error("empty http address")
 )
-
-// HTTPShutdownTimeout changes default shutdown timeout.
-func HTTPShutdownTimeout(v time.Duration) HTTPOption {
-	return func(s *httpService) {
-		s.shutdownTimeout = v
-	}
-}
 
 // HTTPName allows set name for the http-service.
 func HTTPName(name string) HTTPOption {
@@ -49,8 +44,7 @@ func HTTPName(name string) HTTPOption {
 	}
 }
 
-// HTTPListenNetwork allows to change default (tcp)
-// network for net.Listener.
+// HTTPListenNetwork allows to change default (tcp) network for net.Listener.
 func HTTPListenNetwork(network string) HTTPOption {
 	return func(s *httpService) {
 		s.network = network
@@ -65,10 +59,32 @@ func HTTPListenAddress(address string) HTTPOption {
 	}
 }
 
-// HTTPSkipErrors allows to skip any errors
+// HTTPSkipErrors allows to skip any errors.
 func HTTPSkipErrors() HTTPOption {
 	return func(s *httpService) {
 		s.skipErrors = true
+	}
+}
+
+// HTTPListener allows to set custom net.Listener.
+func HTTPListener(lis net.Listener) HTTPOption {
+	return func(s *httpService) {
+		if lis == nil {
+			return
+		}
+
+		s.listener = lis
+	}
+}
+
+// HTTPWithLogger allows to set logger.
+func HTTPWithLogger(l *zap.Logger) HTTPOption {
+	return func(s *httpService) {
+		if l == nil {
+			return
+		}
+
+		s.logger = l
 	}
 }
 
@@ -79,19 +95,28 @@ func NewHTTPService(serve *http.Server, opts ...HTTPOption) (service.Service, er
 	}
 
 	s := &httpService{
-		skipErrors:      false,
-		server:          serve,
-		network:         "tcp",
-		address:         serve.Addr,
-		shutdownTimeout: time.Second * 30,
+		logger: zap.NewNop(),
+
+		skipErrors: false,
+		server:     serve,
+		network:    "tcp",
 	}
 
 	for i := range opts {
 		opts[i](s)
 	}
 
+	if s.listener != nil {
+		return s, nil
+	}
+
 	if s.address == "" {
 		return nil, ErrEmptyHTTPAddress
+	}
+
+	var err error
+	if s.listener, err = net.Listen(s.network, s.address); err != nil {
+		return nil, s.catch(err)
 	}
 
 	return s, nil
@@ -99,56 +124,37 @@ func NewHTTPService(serve *http.Server, opts ...HTTPOption) (service.Service, er
 
 // Name returns name of the service.
 func (s *httpService) Name() string {
-	return fmt.Sprintf("http(%s) %s %s", s.name, s.network, s.address)
+	return fmt.Sprintf("http(%s) %s", s.name, s.listener.Addr())
 }
 
 // Start runs http.Server and returns error
 // if something went wrong.
-func (s *httpService) Start(ctx context.Context) error {
-	var (
-		err error
-		lis net.Listener
-		lic net.ListenConfig
-	)
-
+func (s *httpService) Start(context.Context) error {
 	if s.server == nil {
-		return s.catch(ErrEmptyHTTPServer)
-	} else if lis, err = lic.Listen(ctx, s.network, s.address); err != nil {
-		return s.catch(err)
+		return ErrEmptyHTTPServer
 	}
 
-	go func() {
-		var err error
-
-		switch {
-		case s.server.TLSConfig == nil:
-			err = s.server.Serve(lis)
-		default:
-			// provide cert and key from TLSConfig
-			err = s.server.ServeTLS(lis, "", "")
-		}
-
-		// ignores known error
-		if err = s.catch(err); err != nil {
-			fmt.Printf("could not start http.Server: %v\n", err)
-			fatal(2)
-		}
-	}()
-
-	return nil
+	switch {
+	case s.server.TLSConfig == nil:
+		return s.catch(s.server.Serve(s.listener))
+	default:
+		// provide cert and key from TLSConfig
+		return s.catch(s.server.ServeTLS(s.listener, "", ""))
+	}
 }
 
 // Stop tries to stop http.Server and returns error
 // if something went wrong.
-func (s *httpService) Stop() error {
+func (s *httpService) Stop(ctx context.Context) {
 	if s.server == nil {
-		return s.catch(ErrEmptyHTTPServer)
+		panic(ErrEmptyHTTPServer)
 	}
 
-	ctx, cancel := context.WithTimeout(context.Background(), s.shutdownTimeout)
-	defer cancel()
-
-	return s.catch(s.server.Shutdown(ctx))
+	if err := s.catch(s.server.Shutdown(ctx)); err != nil {
+		s.logger.Error("could not stop http.Server",
+			zap.String("name", s.name),
+			zap.Error(err))
+	}
 }
 
 func (s *httpService) catch(err error) error {
