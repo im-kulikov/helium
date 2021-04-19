@@ -1,23 +1,29 @@
 package web
 
 import (
+	"bytes"
 	"io/ioutil"
+	"math"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
-	"github.com/im-kulikov/helium/module"
-	"github.com/im-kulikov/helium/service"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"google.golang.org/grpc/test/bufconn"
 	gt "google.golang.org/grpc/test/grpc_testing"
+
+	"github.com/im-kulikov/helium/module"
+	"github.com/im-kulikov/helium/service"
 )
 
 type (
@@ -35,14 +41,13 @@ type (
 	testMultiParams struct {
 		dig.In
 
-		Services []service.Service `group:"services"`
+		Service service.Group
 	}
 )
 
-var (
-	_ = ListenerSkipErrors
-	_ = ListenerIgnoreError
-	_ = ListenerShutdownTimeout
+const (
+	testHTTPServe = "test-http"
+	testGRPCServe = "test-grpc"
 )
 
 // One empty request followed by one empty response.
@@ -76,31 +81,26 @@ func testGRPCServer(_ *require.Assertions) *grpc.Server {
 
 func TestServers(t *testing.T) {
 	var (
-		l  = zap.L()
-		di = dig.New()
-		v  = viper.New()
+		l = zap.L()
+		v = viper.New()
 	)
 
 	t.Run("gRPC default server", func(t *testing.T) {
 		t.Run("should skip for empty gRPC server", func(t *testing.T) {
-			res, err := newDefaultGRPCServer(grpcParams{
-				Logger: l,
-				Viper:  v,
-				Key:    "test-gRPC",
-			})
+			res, err := newDefaultGRPCServer(grpcParams{Logger: l, Viper: v, Key: testGRPCServe})
 			require.Empty(t, res)
 			require.NoError(t, err)
 			require.Empty(t, res)
 		})
 
 		t.Run("should skip for disabled gRPC server", func(t *testing.T) {
-			g := grpc.NewServer()
-			v.Set("test-gRPC.disabled", true)
+			v.Set("disabled-grpc.disabled", true)
+
 			res, err := newDefaultGRPCServer(grpcParams{
 				Logger: l,
 				Viper:  v,
-				Key:    "test-gRPC",
-				Server: g,
+				Key:    "disabled-grpc",
+				Server: grpc.NewServer(),
 			})
 			require.Empty(t, res)
 			require.NoError(t, err)
@@ -114,33 +114,39 @@ func TestServers(t *testing.T) {
 		})
 
 		t.Run("should fail for empty viper", func(t *testing.T) {
-			res, err := newDefaultGRPCServer(grpcParams{Logger: l, Key: "some-key"})
+			res, err := newDefaultGRPCServer(grpcParams{Logger: zaptest.NewLogger(t), Key: testGRPCServe})
 			require.Empty(t, res)
 			require.NoError(t, err)
 		})
 
 		t.Run("should skip empty gRPC default server", func(t *testing.T) {
-			res, err := newDefaultGRPCServer(grpcParams{Logger: l})
+			res, err := newDefaultGRPCServer(grpcParams{Logger: zaptest.NewLogger(t)})
 			require.Empty(t, res)
 			require.NoError(t, err)
 		})
 
 		t.Run("should creates with passed config", func(t *testing.T) {
-			v.Set("test_grpc.address", ":0")
-			v.Set("test_grpc.network", "test")
-			v.Set("test_grpc.skip_errors", true)
+			lis := bufconn.Listen(listenSize)
+			defer require.NoError(t, lis.Close())
+			v.Set(testGRPCServe+".address", ":0")
+			v.Set(testGRPCServe+".network", "test")
+			v.Set(testGRPCServe+".disabled", false)
+			v.Set(testGRPCServe+".skip_errors", true)
 
 			res, err := newDefaultGRPCServer(grpcParams{
-				Viper:  v,
-				Logger: l,
-				Key:    "test_grpc",
-				Server: grpc.NewServer(),
+				Viper:    v,
+				Listener: lis,
+				Key:      testGRPCServe,
+				Name:     testGRPCServe,
+				Server:   grpc.NewServer(),
+				Logger:   zaptest.NewLogger(t),
 			})
 			require.NoError(t, err)
 
 			serve, ok := res.Server.(*gRPC)
 			require.True(t, ok)
 			require.True(t, serve.skipErrors)
+			require.Equal(t, lis, serve.listener)
 			require.Equal(t, serve.address, ":0")
 			require.Equal(t, serve.network, "test")
 		})
@@ -155,21 +161,17 @@ func TestServers(t *testing.T) {
 		})
 
 		t.Run("without config", func(t *testing.T) {
-			params := profileParams{
-				Viper:  v,
-				Logger: l,
-			}
+			params := profileParams{Logger: zaptest.NewLogger(t)}
 			serve, err := newProfileServer(params)
 			require.NoError(t, err)
 			require.Nil(t, serve.Server)
 		})
 
 		t.Run("with config", func(t *testing.T) {
-			v.SetDefault("pprof.address", ":6090")
-			params := profileParams{
-				Viper:  v,
-				Logger: l,
-			}
+			lis := bufconn.Listen(listenSize)
+			defer require.NoError(t, lis.Close())
+
+			params := profileParams{Viper: v, Listener: lis, Logger: zaptest.NewLogger(t)}
 			serve, err := newProfileServer(params)
 			require.NoError(t, err)
 			require.NotNil(t, serve.Server)
@@ -179,21 +181,32 @@ func TestServers(t *testing.T) {
 
 	t.Run("check metrics server", func(t *testing.T) {
 		t.Run("without config", func(t *testing.T) {
-			params := metricParams{
-				Viper:  v,
-				Logger: l,
-			}
+			params := metricParams{Logger: zaptest.NewLogger(t)}
 			serve, err := newMetricServer(params)
 			require.NoError(t, err)
 			require.Nil(t, serve.Server)
 		})
 
-		t.Run("with config", func(t *testing.T) {
-			v.SetDefault("metrics.address", ":8090")
+		t.Run("should fail on NewHTTPService", func(t *testing.T) {
+			cfg := viper.New()
+			cfg.SetDefault(metricsServer+".address", "test")
+			cfg.SetDefault(metricsServer+".network", "test")
+
 			params := metricParams{
-				Viper:  v,
-				Logger: l,
+				Viper:  cfg,
+				Logger: zaptest.NewLogger(t),
 			}
+
+			serve, err := newMetricServer(params)
+			require.EqualError(t, err, "listen test: unknown network test")
+			require.Nil(t, serve.Server)
+		})
+
+		t.Run("with config", func(t *testing.T) {
+			lis := bufconn.Listen(listenSize)
+			defer require.NoError(t, lis.Close())
+
+			params := metricParams{Viper: v, Listener: lis, Logger: zaptest.NewLogger(t)}
 			serve, err := newMetricServer(params)
 			require.NoError(t, err)
 			require.NotNil(t, serve.Server)
@@ -211,13 +224,13 @@ func TestServers(t *testing.T) {
 		testHTTPHandler(is)
 
 		t.Run("empty key", func(t *testing.T) {
-			serve, err := NewHTTPServer(v, "", testHTTPHandler(is), z)
+			serve, err := NewHTTPServer(HTTPParams{Logger: z})
 			require.NoError(t, err)
 			require.Nil(t, serve.Server)
 		})
 
 		t.Run("empty viper", func(t *testing.T) {
-			serve, err := NewHTTPServer(nil, "test-key", testHTTPHandler(is), z)
+			serve, err := NewHTTPServer(HTTPParams{Logger: z, Key: testHTTPServe})
 			require.NoError(t, err)
 			require.Nil(t, serve.Server)
 		})
@@ -227,12 +240,10 @@ func TestServers(t *testing.T) {
 		is := require.New(t)
 
 		v.SetDefault("test-api.disabled", true)
-		z, err := zap.NewDevelopment()
-		is.NoError(err)
 
 		testHTTPHandler(is)
 
-		serve, err := NewHTTPServer(v, "test-api", testHTTPHandler(is), z)
+		serve, err := NewHTTPServer(HTTPParams{Logger: zaptest.NewLogger(t)})
 		is.NoError(err)
 		is.Nil(serve.Server)
 	})
@@ -240,23 +251,28 @@ func TestServers(t *testing.T) {
 	t.Run("api should be configured", func(t *testing.T) {
 		is := require.New(t)
 
-		v.SetDefault("another-api.address", "test")
-		v.SetDefault("another-api.network", "test")
-		v.SetDefault("another-api.skip_errors", true)
+		name := "another-api"
+		v.SetDefault(name+".skip_errors", true)
 
 		z, err := zap.NewDevelopment()
 		is.NoError(err)
 
-		testHTTPHandler(is)
+		lis := bufconn.Listen(listenSize)
 
-		serve, err := NewHTTPServer(v, "another-api", testHTTPHandler(is), z)
+		serve, err := NewHTTPServer(HTTPParams{
+			Config:   v,
+			Logger:   z,
+			Name:     name,
+			Key:      name,
+			Listener: lis,
+			Handler:  testHTTPHandler(is),
+		})
 		is.NoError(err)
 
 		s, ok := serve.Server.(*httpService)
 		is.True(ok)
 		is.True(s.skipErrors)
-		is.Equal("test", s.address)
-		is.Equal("test", s.network)
+		is.Equal(lis, s.listener)
 	})
 
 	t.Run("check api server", func(t *testing.T) {
@@ -282,11 +298,13 @@ func TestServers(t *testing.T) {
 
 		t.Run("should be ok", func(t *testing.T) {
 			assert := require.New(t)
-			v.SetDefault("api.address", ":8090")
+			listen := bufconn.Listen(listenSize)
+
 			serve, err := NewAPIServer(APIParams{
-				Config:  v,
-				Logger:  l,
-				Handler: testHTTPHandler(assert),
+				Config:   v,
+				Logger:   l,
+				Listener: listen,
+				Handler:  testHTTPHandler(assert),
 			})
 			assert.NoError(err)
 			assert.NotNil(serve.Server)
@@ -296,113 +314,169 @@ func TestServers(t *testing.T) {
 
 	t.Run("check multi server", func(t *testing.T) {
 		var (
-			err     error
-			assert  = require.New(t)
-			servers = map[string]net.Listener{
-				"pprof.address":   nil,
-				"metrics.address": nil,
-				"api.address":     nil,
-				"grpc.address":    nil,
-			}
+			cnr = dig.New()
+			cfg = viper.New()
+			log = zaptest.NewLogger(t)
+
+			assert = require.New(t)
 		)
+
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		// Randomize ports:
-		for name := range servers {
-			servers[name], err = net.Listen("tcp", "127.0.0.1:0")
-			assert.NoError(err)
-			assert.NoError(servers[name].Close())
-			v.SetDefault(name, servers[name].Addr().String())
+		cfg.SetDefault(testHTTPServe+".disabled", true)
+		cfg.SetDefault(apiServer+".network", "tcp")
+		cfg.SetDefault(apiServer+".address", "127.0.0.1")
+
+		cfg.SetDefault(apiServer+".read_timeout", time.Second)
+		cfg.SetDefault(apiServer+".idle_timeout", time.Second)
+		cfg.SetDefault(apiServer+".write_timeout", time.Second)
+		cfg.SetDefault(apiServer+".read_header_timeout", time.Second)
+		cfg.SetDefault(apiServer+".max_header_bytes", math.MaxInt32)
+
+		listeners := map[string]*bufconn.Listener{
+			apiServer:     bufconn.Listen(listenSize),
+			gRPCServer:    bufconn.Listen(listenSize),
+			profileServer: bufconn.Listen(listenSize),
+			metricsServer: bufconn.Listen(listenSize),
 		}
 
 		mod := module.Module{
-			{Constructor: func() *zap.Logger { return l }},
-			{Constructor: func() *viper.Viper { return v }},
-			{Constructor: func() http.Handler { return testHTTPHandler(assert) }},
+			{Constructor: func() *zap.Logger { return log }},
+			{Constructor: func() *viper.Viper { return cfg }},
 			{Constructor: func() grpcResult {
 				return grpcResult{
-					Config: "grpc",
+					Config: gRPCServer,
 					Server: testGRPCServer(assert),
 				}
 			}},
-
+			{
+				Constructor: func() (ServerResult, error) {
+					return NewHTTPServer(HTTPParams{
+						Config:  cfg,
+						Logger:  log,
+						Name:    testHTTPServe,
+						Key:     testHTTPServe,
+						Handler: testHTTPHandler(assert),
+					})
+				},
+			},
+			{Constructor: func() http.Handler { return testHTTPHandler(assert) }},
+			{
+				Constructor: func() http.Handler { return testHTTPHandler(assert) },
+				Options:     []dig.ProvideOption{dig.Name("pprof_handler")},
+			},
 			{
 				Constructor: func() http.Handler { return testHTTPHandler(assert) },
 				Options:     []dig.ProvideOption{dig.Name("metric_handler")},
 			},
+		}.Append(DefaultServersModule, service.Module)
 
-			{
-				Constructor: func() http.Handler { return testHTTPHandler(assert) },
-				Options:     []dig.ProvideOption{dig.Name("profile_handler")},
-			},
-		}.Append(
-			DefaultServersModule,
-		)
+		for item := range listeners {
+			srv := item
+			lis := listeners[srv]
 
-		assert.NoError(module.Provide(di, mod))
+			mod = mod.Append(module.Module{
+				{
+					Constructor: func() net.Listener { return lis },
+					Options:     []dig.ProvideOption{dig.Name(srv + "_listener")},
+				},
+			})
+		}
 
-		err = di.Invoke(func(p testMultiParams) {
-			assert.NotEmpty(p.Services)
+		assert.NoError(module.Provide(cnr, mod))
 
-			serve := p.Services[0]
+		buf := new(bytes.Buffer)
+		require.NoError(t, dig.Visualize(cnr, buf))
+		defer func() {
+			if t.Failed() {
+				t.Logf("\n%s", buf.String())
+			}
+		}()
 
-			assert.NotNil(serve)
-			assert.NoError(serve.Start(ctx))
+		assert.NoError(cnr.Invoke(func(p testMultiParams) {
+			assert.NotEmpty(p.Service)
 
-			for name, lis := range servers {
-				t.Run(name, func(t *testing.T) {
-					t.Logf("check for %q on %q", name, lis.Addr())
+			done := make(chan struct{})
+			start := make(chan struct{})
 
-					switch name {
-					case "grpc.address":
-						ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
-						defer cancel()
+			go func() {
+				t.Helper()
 
+				<-start
+				assert.NoError(p.Service.Run(ctx))
+				close(done)
+			}()
+
+			close(start)
+			time.Sleep(time.Millisecond * 10)
+
+			wg := new(sync.WaitGroup)
+			wg.Add(len(listeners))
+
+			for item := range listeners {
+				srv := item
+				lis := listeners[item]
+				t.Run(srv, func(t *testing.T) {
+					defer func() {
+						t.Logf("done for %s", srv)
+						wg.Done()
+					}()
+
+					switch srv {
+					case gRPCServer:
 						conn, err := grpc.DialContext(ctx, lis.Addr().String(),
 							grpc.WithBlock(),
-							grpc.WithInsecure())
+							grpc.WithInsecure(),
+							grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+								return lis.Dial()
+							}))
 
-						assert.NoError(err)
+						require.NoError(t, err)
 
 						cli := gt.NewTestServiceClient(conn)
 
 						{ // EmptyCall
 							res, err := cli.EmptyCall(ctx, &gt.Empty{})
-							assert.NoError(err)
-							assert.NotNil(res)
+							require.NoError(t, err)
+							require.NotNil(t, res)
 						}
 
 						{ // UnaryCall
 							res, err := cli.UnaryCall(ctx, &gt.SimpleRequest{})
-							assert.Nil(res)
-							assert.Error(err)
+							require.Nil(t, res)
+							require.Error(t, err)
 
 							st, ok := status.FromError(err)
-							assert.True(ok)
-							assert.Equal(codes.AlreadyExists, st.Code())
-							assert.Equal(codes.AlreadyExists.String(), st.Message())
+							require.True(t, ok)
+							require.Equal(t, codes.AlreadyExists, st.Code())
+							require.Equal(t, codes.AlreadyExists.String(), st.Message())
 						}
 
 					default:
-						resp, err := http.Get("http://" + lis.Addr().String() + "/test")
-						assert.NoError(err)
+						client := &http.Client{
+							Transport: &http.Transport{
+								DialContext: func(context.Context, string, string) (net.Conn, error) {
+									return lis.Dial()
+								},
+							},
+						}
 
-						defer func() {
-							err := resp.Body.Close()
-							assert.NoError(err)
-						}()
+						resp, err := client.Get("http://" + lis.Addr().String() + "/test")
+						require.NoError(t, err)
 
 						data, err := ioutil.ReadAll(resp.Body)
-						assert.NoError(err)
+						require.NoError(t, err)
 
-						assert.Equal(expectResult, data)
+						require.Equal(t, expectResult, data)
+						require.NoError(t, resp.Body.Close())
 					}
 				})
 			}
 
-			assert.NoError(serve.Stop())
-		})
-		assert.NoError(err)
+			wg.Wait()
+			cancel()
+			<-done
+		}))
 	})
 }

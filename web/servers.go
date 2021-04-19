@@ -1,16 +1,19 @@
 package web
 
 import (
+	"net"
 	"net/http"
 	"net/http/pprof"
 
-	"github.com/im-kulikov/helium/module"
-	"github.com/im-kulikov/helium/service"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 	"google.golang.org/grpc"
+
+	"github.com/im-kulikov/helium/internal"
+	"github.com/im-kulikov/helium/module"
+	"github.com/im-kulikov/helium/service"
 )
 
 type (
@@ -18,51 +21,65 @@ type (
 	APIParams struct {
 		dig.In
 
-		Config  *viper.Viper
-		Logger  *zap.Logger
-		Handler http.Handler `optional:"true"`
+		Config   *viper.Viper
+		Logger   *zap.Logger
+		Handler  http.Handler `optional:"true"`
+		Listener net.Listener `name:"api_listener" optional:"true"`
 	}
 
-	// MultiServerParams struct
-	MultiServerParams struct {
+	HTTPParams struct {
 		dig.In
 
-		Logger  *zap.Logger
-		Servers []service.Service `group:"web_servers"`
+		Config   *viper.Viper
+		Logger   *zap.Logger
+		Name     string       `name:"http_name" optional:"true"`
+		Key      string       `name:"http_config" optional:"true"`
+		Handler  http.Handler `name:"http_handler" optional:"true"`
+		Listener net.Listener `name:"http_listener" optional:"true"`
 	}
 
 	// ServerResult struct
 	ServerResult struct {
 		dig.Out
 
-		Server service.Service `group:"web_servers"`
+		Server service.Service `group:"services"`
 	}
 
 	profileParams struct {
 		dig.In
 
-		Logger  *zap.Logger
-		Viper   *viper.Viper
-		Handler http.Handler `name:"profile_handler" optional:"true"`
+		Logger   *zap.Logger
+		Viper    *viper.Viper
+		Handler  http.Handler `name:"pprof_handler" optional:"true"`
+		Listener net.Listener `name:"pprof_listener" optional:"true"`
 	}
 
 	metricParams struct {
 		dig.In
 
-		Logger  *zap.Logger
-		Viper   *viper.Viper
-		Handler http.Handler `name:"metric_handler" optional:"true"`
+		Logger   *zap.Logger
+		Viper    *viper.Viper
+		Handler  http.Handler `name:"metric_handler" optional:"true"`
+		Listener net.Listener `name:"metric_listener" optional:"true"`
 	}
 
 	grpcParams struct {
 		dig.In
 
-		Logger *zap.Logger
-		Viper  *viper.Viper
-		Name   string       `name:"grpc_name" optional:"true"`
-		Key    string       `name:"grpc_config" optional:"true"`
-		Server *grpc.Server `name:"grpc_server" optional:"true"`
+		Logger   *zap.Logger
+		Viper    *viper.Viper
+		Name     string       `name:"grpc_name" optional:"true"`
+		Key      string       `name:"grpc_config" optional:"true"`
+		Server   *grpc.Server `name:"grpc_server" optional:"true"`
+		Listener net.Listener `name:"grpc_listener" optional:"true"`
 	}
+)
+
+const (
+	apiServer     = "api"
+	gRPCServer    = "grpc"
+	profileServer = "pprof"
+	metricsServer = "metric"
 )
 
 var (
@@ -72,14 +89,10 @@ var (
 		ProfilerModule,
 		MetricsModule,
 		APIModule,
-		MultiServeModule,
 	)
 
 	// APIModule defines API server module.
 	APIModule = module.New(NewAPIServer)
-
-	// MultiServeModule defines multi serve module.
-	MultiServeModule = module.New(NewMultiServer, dig.Group("services"))
 
 	// ProfilerModule defines pprof server module.
 	ProfilerModule = module.New(newProfileServer)
@@ -89,10 +102,10 @@ var (
 
 	// DefaultGRPCModule defines default gRPC server module.
 	DefaultGRPCModule = module.New(newDefaultGRPCServer)
-)
 
-// NewMultiServer returns new multi servers group
-func NewMultiServer(p MultiServerParams) (service.Service, error) { return New(p.Logger, p.Servers...) }
+	// ErrEmptyLogger is raised when empty logger passed into New function.
+	ErrEmptyLogger = internal.Error("empty logger")
+)
 
 func newProfileServer(p profileParams) (ServerResult, error) {
 	mux := http.NewServeMux()
@@ -104,7 +117,14 @@ func newProfileServer(p profileParams) (ServerResult, error) {
 	if p.Handler != nil {
 		mux.Handle("/", p.Handler)
 	}
-	return NewHTTPServer(p.Viper, "pprof", mux, p.Logger)
+	return NewHTTPServer(HTTPParams{
+		Config:   p.Viper,
+		Logger:   p.Logger,
+		Name:     profileServer,
+		Key:      profileServer,
+		Handler:  mux,
+		Listener: p.Listener,
+	})
 }
 
 func newMetricServer(p metricParams) (ServerResult, error) {
@@ -113,17 +133,31 @@ func newMetricServer(p metricParams) (ServerResult, error) {
 	if p.Handler != nil {
 		mux.Handle("/", p.Handler)
 	}
-	return NewHTTPServer(p.Viper, "metrics", mux, p.Logger)
+	return NewHTTPServer(HTTPParams{
+		Config:   p.Viper,
+		Logger:   p.Logger,
+		Name:     metricsServer,
+		Key:      metricsServer,
+		Handler:  mux,
+		Listener: p.Listener,
+	})
 }
 
 // NewAPIServer creates api server by http.Handler from DI container
 func NewAPIServer(p APIParams) (ServerResult, error) {
-	return NewHTTPServer(p.Config, "api", p.Handler, p.Logger)
+	return NewHTTPServer(HTTPParams{
+		Config:   p.Config,
+		Logger:   p.Logger,
+		Name:     apiServer,
+		Key:      apiServer,
+		Handler:  p.Handler,
+		Listener: p.Listener,
+	})
 }
 
 func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
 	if p.Key == "" {
-		p.Key = "grpc"
+		p.Key = gRPCServer
 	}
 
 	if p.Name == "" {
@@ -136,7 +170,7 @@ func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
 	case p.Viper == nil:
 		p.Logger.Info("Empty config for gRPC server, skip")
 		return ServerResult{}, nil
-	case p.Viper.IsSet(p.Key + ".disabled"):
+	case p.Viper.GetBool(p.Key + ".disabled"):
 		p.Logger.Info("Server disabled",
 			zap.String("name", p.Name))
 		return ServerResult{}, nil
@@ -146,10 +180,11 @@ func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
 		return ServerResult{}, nil
 	}
 
+	var address string
 	options := []GRPCOption{
 		GRPCName(p.Name),
-		GRPCListenAddress(p.Viper.GetString(p.Key + ".address")),
-		GRPCShutdownTimeout(p.Viper.GetDuration(p.Key + ".shutdown_timeout")),
+		GRPCWithLogger(p.Logger),
+		GRPCListener(p.Listener),
 	}
 
 	if p.Viper.GetBool(p.Key + ".skip_errors") {
@@ -160,68 +195,89 @@ func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
 		options = append(options, GRPCListenNetwork(p.Viper.GetString(p.Key+".network")))
 	}
 
+	if p.Viper.IsSet(p.Key + ".address") {
+		address = p.Viper.GetString(p.Key + ".address")
+		options = append(options, GRPCListenAddress(address))
+	}
+
+	if p.Listener != nil {
+		address = p.Listener.Addr().String()
+	}
+
 	serve, err := NewGRPCService(p.Server, options...)
 
-	p.Logger.Info("Creates gRPC server",
-		zap.String("name", p.Key),
-		zap.String("address", p.Viper.GetString(p.Key+".address")))
+	p.Logger.Info("Creates gRPC server", zap.String("name", p.Key), zap.String("address", address))
 
 	return ServerResult{Server: serve}, err
 }
 
 // NewHTTPServer creates http-server that will be embedded into multi-server
-func NewHTTPServer(v *viper.Viper, key string, h http.Handler, l *zap.Logger) (ServerResult, error) {
+func NewHTTPServer(p HTTPParams) (ServerResult, error) {
 	switch {
-	case l == nil:
+	case p.Logger == nil:
 		return ServerResult{}, ErrEmptyLogger
-	case key == "" || v == nil:
-		l.Info("Empty config or key for http server, skip", zap.String("key", key))
+	case p.Key == "" || p.Config == nil:
+		p.Logger.Info("Empty config or key for http server, skip", zap.String("key", p.Key))
 		return ServerResult{}, nil
-	case h == nil:
-		l.Info("Empty handler, skip",
-			zap.String("name", key))
+	case p.Handler == nil:
+		p.Logger.Info("Empty handler, skip", zap.String("name", p.Key))
 		return ServerResult{}, nil
-	case v.GetBool(key + ".disabled"):
-		l.Info("Server disabled",
-			zap.String("name", key))
-		return ServerResult{}, nil
-	case !v.IsSet(key + ".address"):
-		l.Info("Empty bind address, skip",
-			zap.String("name", key))
+	case p.Config.GetBool(p.Key + ".disabled"):
+		p.Logger.Info("Server disabled", zap.String("name", p.Key))
 		return ServerResult{}, nil
 	}
 
 	options := []HTTPOption{
-		HTTPListenAddress(v.GetString(key + ".address")),
-		HTTPShutdownTimeout(v.GetDuration(key + ".shutdown_timeout")),
+		HTTPName(p.Key),
+		HTTPListener(p.Listener),
+		HTTPWithLogger(p.Logger),
 	}
 
-	if v.IsSet(key + ".network") {
-		options = append(options, HTTPListenNetwork(v.GetString(key+".network")))
+	var address string
+	if p.Config.IsSet(p.Key + ".address") {
+		address = p.Config.GetString(p.Key + ".address")
+		options = append(options, HTTPListenAddress(address))
 	}
 
-	if v.IsSet(key + ".skip_errors") {
+	if p.Config.IsSet(p.Key + ".network") {
+		options = append(options, HTTPListenNetwork(p.Config.GetString(p.Key+".network")))
+	}
+
+	if p.Config.IsSet(p.Key + ".skip_errors") {
 		options = append(options, HTTPSkipErrors())
 	}
 
-	options = append(options, HTTPName(key))
+	hServer := &http.Server{Handler: p.Handler}
+	if p.Config.IsSet(p.Key + ".read_timeout") {
+		hServer.ReadTimeout = p.Config.GetDuration(p.Key + ".read_timeout")
+	}
 
-	serve, err := NewHTTPService(
-		&http.Server{
-			Handler:           h,
-			Addr:              v.GetString(key + ".address"),
-			ReadTimeout:       v.GetDuration(key + ".read_timeout"),
-			ReadHeaderTimeout: v.GetDuration(key + ".read_header_timeout"),
-			WriteTimeout:      v.GetDuration(key + ".write_timeout"),
-			IdleTimeout:       v.GetDuration(key + ".idle_timeout"),
-			MaxHeaderBytes:    v.GetInt(key + ".max_header_bytes"),
-		},
-		options...,
-	)
+	if p.Config.IsSet(p.Key + ".read_header_timeout") {
+		hServer.ReadHeaderTimeout = p.Config.GetDuration(p.Key + ".read_header_timeout")
+	}
 
-	l.Info("creates http server",
-		zap.String("name", key),
-		zap.String("address", v.GetString(key+".address")))
+	if p.Config.IsSet(p.Key + ".write_timeout") {
+		hServer.WriteTimeout = p.Config.GetDuration(p.Key + ".write_timeout")
+	}
 
-	return ServerResult{Server: serve}, err
+	if p.Config.IsSet(p.Key + ".idle_timeout") {
+		hServer.IdleTimeout = p.Config.GetDuration(p.Key + ".idle_timeout")
+	}
+
+	if p.Config.IsSet(p.Key + ".max_header_bytes") {
+		hServer.MaxHeaderBytes = p.Config.GetInt(p.Key + ".max_header_bytes")
+	}
+
+	if p.Listener != nil {
+		address = p.Listener.Addr().String()
+	}
+
+	serve, err := NewHTTPService(hServer, options...)
+	if err != nil {
+		return ServerResult{}, err
+	}
+
+	p.Logger.Info("creates http server", zap.String("name", p.Name), zap.String("address", address))
+
+	return ServerResult{Server: serve}, nil
 }
