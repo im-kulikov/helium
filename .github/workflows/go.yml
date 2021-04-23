@@ -22,6 +22,10 @@ jobs:
     - name: Check out code
       uses: actions/checkout@v2
 
+    - name: golangci-lint
+      with: { version: latest }
+      uses: golangci/golangci-lint-action@v2
+
     - name: Cache go mod
       uses: actions/cache@v2
       with:
@@ -29,10 +33,6 @@ jobs:
         key: ${{ runner.os }}-go-${{ matrix.go }}-${{ hashFiles('**/go.sum') }}
         restore-keys: |
           ${{ runner.os }}-go-${{ matrix.go }}-
-
-    - name: golangci-lint
-      with: { version: latest }
-      uses: golangci/golangci-lint-action@v2
 
     - name: Tests
       run: go test -v -race -coverprofile=coverage.txt -covermode=atomic ./...

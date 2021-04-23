@@ -28,7 +28,7 @@ type testCase struct {
 const (
 	errAlways = internal.Error("always")
 
-	defaultAwait = time.Millisecond * 5
+	defaultAwait = time.Millisecond * 10
 )
 
 func TestNew(t *testing.T) {
