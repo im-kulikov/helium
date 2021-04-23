@@ -6,6 +6,7 @@ import (
 
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/atomic"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
@@ -18,7 +19,7 @@ type errService struct {
 	start bool
 	stop  bool
 
-	stopError error
+	*atomic.Error
 }
 
 func (e *errService) Start(_ context.Context) error {
@@ -31,7 +32,7 @@ func (e *errService) Start(_ context.Context) error {
 
 func (e *errService) Stop(context.Context) {
 	if e.stop {
-		e.stopError = testError
+		e.Store(testError)
 	}
 }
 
@@ -77,7 +78,7 @@ func TestDefaultApp(t *testing.T) {
 
 	t.Run("default application with stop err", func(t *testing.T) {
 		ctx, cancel := context.WithCancel(context.Background())
-		svc := &errService{stop: true}
+		svc := &errService{stop: true, Error: atomic.NewError(nil)}
 
 		h, err := New(&Settings{},
 			DefaultApp,
@@ -92,6 +93,6 @@ func TestDefaultApp(t *testing.T) {
 
 		cancel()
 		require.NoError(t, h.Run())
-		require.EqualError(t, svc.stopError, testError.Error())
+		require.EqualError(t, svc.Load(), testError.Error())
 	})
 }

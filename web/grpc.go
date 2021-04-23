@@ -138,7 +138,11 @@ func (g *gRPC) Start(context.Context) error {
 // Stop tries to stop gRPC service.
 func (g *gRPC) Stop(context.Context) {
 	if g.server == nil {
-		panic(ErrEmptyGRPCServer)
+		g.logger.Error("could not stop gRPC server",
+			zap.String("name", g.name),
+			zap.Error(ErrEmptyGRPCServer))
+
+		return
 	}
 
 	g.server.GracefulStop()

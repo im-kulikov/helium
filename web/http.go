@@ -148,7 +148,11 @@ func (s *httpService) Start(context.Context) error {
 // if something went wrong.
 func (s *httpService) Stop(ctx context.Context) {
 	if s.server == nil {
-		panic(ErrEmptyHTTPServer)
+		s.logger.Error("could not stop http.Server",
+			zap.String("name", s.name),
+			zap.Error(ErrEmptyHTTPServer))
+
+		return
 	}
 
 	if err := s.catch(s.server.Shutdown(ctx)); err != nil {

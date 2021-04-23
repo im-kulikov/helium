@@ -68,7 +68,7 @@ func TestNew(t *testing.T) {
 	}
 
 	{ // should stop on context deadline
-		ctx, cancel := context.WithTimeout(context.Background(), defaultAwait/3)
+		ctx, cancel := context.WithTimeout(context.Background(), defaultAwait/4)
 		cases = append(cases, testCase{
 			name: "should stop on context deadline",
 
@@ -77,7 +77,7 @@ func TestNew(t *testing.T) {
 
 			await: defaultAwait,
 
-			shutdown: defaultAwait / 3,
+			shutdown: defaultAwait / 4,
 			services: []service{
 				{
 					shutdown: func(ctx context.Context) { <-ctx.Done() },
