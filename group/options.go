@@ -7,14 +7,14 @@ import (
 // Option allows to change group settings.
 type Option func(*group)
 
-// WithShutdownTimeout allows to change shutdown period.
+// WithShutdownTimeout allows to change shutdown shutdown.
 func WithShutdownTimeout(v time.Duration) Option {
 	return func(g *group) {
 		if v == 0 {
 			return
 		}
 
-		g.period = v
+		g.shutdown = v
 	}
 }
 

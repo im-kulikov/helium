@@ -19,6 +19,8 @@ import (
 
 type (
 	testWorker struct {
+		*atomic.Error
+
 		number  int
 		errored bool
 		started *atomic.Bool
@@ -60,7 +62,7 @@ func (t *testWorker) Start(ctx context.Context) error {
 
 func (t *testWorker) Stop(context.Context) {
 	if t.errored {
-		panic(testError)
+		t.Store(testError)
 	}
 
 	t.started.Toggle()
@@ -73,6 +75,7 @@ func (t *testWorker) Name() string {
 func newWorker() *testWorker {
 	return &testWorker{
 		number:  int(iter.Inc()),
+		Error:   atomic.NewError(nil),
 		started: atomic.NewBool(false),
 	}
 }
@@ -137,7 +140,12 @@ func TestServices(t *testing.T) {
 		})
 
 		require.False(t, wrk.started.Load())
-		require.Panics(t, func() { require.NoError(t, grp.Run(context.Background())) }, testError.Error())
+
+		// error should be passed from start
+		require.EqualError(t, grp.Run(context.Background()), testError.Error())
+
+		// error should be written on stop
+		require.EqualError(t, wrk.Load(), testError.Error())
 	})
 }
 

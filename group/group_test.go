@@ -18,9 +18,9 @@ type testCase struct {
 
 	await time.Duration
 
-	actors []actor
-	ignore []error
-	period time.Duration
+	ignore   []error
+	services []service
+	shutdown time.Duration
 
 	expect error
 }
@@ -46,19 +46,19 @@ func TestNew(t *testing.T) {
 		})
 	}
 
-	{ // errored actor
+	{ // errored service
 		ctx, cancel := context.WithCancel(context.Background())
 		cases = append(cases, testCase{
-			name: "errored actor",
+			name: "errored service",
 
 			ctx:    ctx,
 			cancel: cancel,
 
 			await: defaultAwait,
 
-			period: time.Nanosecond,
-			expect: errAlways,
-			actors: []actor{
+			shutdown: time.Nanosecond,
+			expect:   errAlways,
+			services: []service{
 				{
 					shutdown: func(ctx context.Context) { <-ctx.Done() },
 					callback: func(context.Context) error { return errAlways },
@@ -77,8 +77,8 @@ func TestNew(t *testing.T) {
 
 			await: defaultAwait,
 
-			period: defaultAwait / 3,
-			actors: []actor{
+			shutdown: defaultAwait / 3,
+			services: []service{
 				{
 					shutdown: func(ctx context.Context) { <-ctx.Done() },
 					callback: func(ctx context.Context) error {
@@ -108,9 +108,9 @@ func TestNew(t *testing.T) {
 
 			await: defaultAwait,
 
-			period: time.Nanosecond,
+			shutdown: time.Nanosecond,
 
-			actors: []actor{
+			services: []service{
 				{
 					shutdown: func(ctx context.Context) { <-ctx.Done() },
 					callback: func(ctx context.Context) error {
@@ -138,11 +138,11 @@ func TestNew(t *testing.T) {
 			now := time.Now()
 
 			run := New(
-				WithShutdownTimeout(tt.period),
+				WithShutdownTimeout(tt.shutdown),
 				WithIgnoreErrors(tt.ignore...))
 
-			for j := range tt.actors {
-				run.Add(tt.actors[j].callback, tt.actors[j].shutdown)
+			for j := range tt.services {
+				run.Add(tt.services[j].callback, tt.services[j].shutdown)
 			}
 
 			require.Equal(t, tt.expect, run.Run(tt.ctx))
