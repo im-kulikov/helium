@@ -119,9 +119,9 @@ func (g *group) Run(ctx context.Context) error {
 
 	// we should wait until all services will gracefully stopped
 	wg := new(sync.WaitGroup)
-	wg.Add(len(g.services))
 	defer wg.Wait()
 
+	wg.Add(len(g.services))
 	// notify all services to stop
 	for i := range g.services {
 		go func(shutdown Shutdown) {

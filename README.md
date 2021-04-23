@@ -94,10 +94,10 @@ func main() {
 
 ## Group (actors)
 
-*Helium* provides primitive to run actors concurrently and stop when
+*Helium* provides primitive to run group of services (callback and shutdown functions) concurrently and stop when
 - context will be canceled
 - context will be deadlined
-- any of actor will be done
+- any of service will be done (return from callback)
 
 *Example*
 
