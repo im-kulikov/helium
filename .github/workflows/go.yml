@@ -43,3 +43,12 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }} #required
         file: ./coverage.txt 
         fail_ci_if_error: true #optional (default = false)
+
+    - name: Run GoReleaser
+      uses: goreleaser/goreleaser-action@v2
+      if: startsWith(github.ref, 'refs/tags/')
+      with:
+        version: latest
+        args: release --rm-dist
+      env:
+        GITHUB_TOKEN: ${{ secrets.GO_RELEASER_TOKEN }}
