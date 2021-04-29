@@ -17,7 +17,7 @@
 * [Why Helium](#why-helium)
 * [About Helium and modules](#about-helium-and-modules)
     * [Preconfigure](#defaults-and-preconfigure)
-    * [Group](#group-actors)
+    * [Group](#group-services)
     * [Services](#service-module)
     * [Logger](#logger-module)
     * [NATS](#nats-module)
@@ -52,7 +52,7 @@ The modular structure of helium consists of the following concepts
  
 It contains the following components for rapid prototyping of your projects:
 - Grace - [context](https://golang.org/pkg/context/) that helps you gracefully shutdown your application
-- Group - collects an actors and runs them concurrently, [see examples](#group-actors).
+- Group - collects an services and runs them concurrently, [see examples](#group-services).
 - Logger - [zap](https://go.uber.org/zap) is blazing fast, structured, leveled logging in Go
 - DI - based on [DIG](https://go.uber.org/dig). A reflection based dependency injection toolkit for Go.
 - Module - set of tools for working with the DI component
@@ -92,7 +92,7 @@ func main() {
 }
 ``` 
 
-## Group (actors)
+## Group (services)
 
 *Helium* provides primitive to run group of services (callback and shutdown functions) concurrently and stop when
 - context will be canceled
@@ -133,7 +133,7 @@ func runner(ctx context.Context, services []service.Service) error {
         run.Add(prepare(svc))
     }
 
-    // - wait until any actor will be stopped
+    // - wait until any service will be stopped
     // - wait until context will be canceled or deadlined
     return run.Run(ctx)
 }
@@ -177,7 +177,7 @@ import (
   "context"
 
   "github.com/im-kulikov/helium/service"
-  "github.com/oklog/oklog/pkg/group"
+  "github.com/im-kulikov/helium/group"
 )
 
 type app struct {}
