@@ -1,0 +1,20 @@
+version: 2
+updates:
+- package-ecosystem: gomod
+  directory: "/"
+  schedule:
+    interval: daily
+    time: "10:00"
+  open-pull-requests-limit: 10
+  reviewers:
+  - im-kulikov
+  assignees:
+  - im-kulikov
+  labels:
+  - dependencies
+  ignore:
+  - dependency-name: google.golang.org/grpc
+    versions:
+    - 1.36.0
+    - 1.36.1
+    - 1.37.0
