@@ -8,6 +8,8 @@ linters:
     - maligned
     - paralleltest
     - tparallel
+    - stylecheck
+    - golint
     - exhaustivestruct
 
 linters-settings:
