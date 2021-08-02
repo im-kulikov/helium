@@ -15,6 +15,7 @@ import (
 	"go.uber.org/zap/zaptest"
 
 	"github.com/im-kulikov/helium/internal"
+	"github.com/im-kulikov/helium/module"
 )
 
 type (
@@ -92,49 +93,61 @@ func TestServices(t *testing.T) {
 		// should ignore empty service
 		services = append(services, nil)
 
-		grp := newGroup(Params{
-			Group:  services,
-			Config: viper.New(),
-			Logger: zaptest.NewLogger(t),
-		})
+		di := dig.New()
+		require.NoError(t, module.Provide(di, Module.Append(module.Module{
+			{Constructor: func() *viper.Viper {
+				v := viper.New()
+				v.SetDefault(ShutdownTimeoutParam, time.Nanosecond)
 
-		ctx, cancel := context.WithCancel(context.Background())
+				return v
+			}},
 
-		group := new(sync.WaitGroup)
-		start := make(chan struct{})
+			{
+				Constructor: func() []Service { return services },
+				Options:     []dig.ProvideOption{dig.Group("services,flatten")},
+			},
 
-		group.Add(1)
+			{Constructor: func() *zap.Logger { return zaptest.NewLogger(t) }},
+		})))
 
-		go func() {
-			defer group.Done()
+		require.NoError(t, di.Invoke(func(grp Group) {
+			ctx, cancel := context.WithCancel(context.Background())
 
-			<-start
-			require.NoError(t, grp.Run(ctx))
-		}()
+			group := new(sync.WaitGroup)
+			start := make(chan struct{})
 
-		close(start)
+			group.Add(1)
 
-		<-time.After(time.Millisecond * 5)
+			go func() {
+				defer group.Done()
 
-		for i := 0; i < count; i++ {
-			if wrk, ok := services[i].(*testWorker); ok && !services[i].(*testWorker).started.Load() {
-				t.Fatalf("worker(%d) should be started", wrk.number)
+				<-start
+				require.NoError(t, grp.Run(ctx))
+			}()
+
+			close(start)
+
+			<-time.After(time.Millisecond * 5)
+
+			for i := 0; i < count; i++ {
+				if wrk, ok := services[i].(*testWorker); ok && !services[i].(*testWorker).started.Load() {
+					t.Fatalf("worker(%d) should be started", wrk.number)
+				}
 			}
-		}
 
-		cancel()
-		group.Wait()
-		for i := 0; i < count; i++ {
-			require.False(t, services[i].(*testWorker).started.Load())
-		}
+			cancel()
+			group.Wait()
+			for i := 0; i < count; i++ {
+				require.False(t, services[i].(*testWorker).started.Load())
+			}
+		}))
 	})
 
-	t.Run("should panics on stop", func(t *testing.T) {
+	t.Run("should error on stop", func(t *testing.T) {
 		wrk := newWorker()
 		wrk.errored = true
 
 		grp := newGroup(Params{
-			Config: viper.New(),
 			Group:  []Service{wrk},
 			Logger: zaptest.NewLogger(t),
 		})

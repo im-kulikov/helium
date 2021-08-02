@@ -2,8 +2,8 @@ package service
 
 import (
 	"context"
+	"time"
 
-	"github.com/spf13/viper"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
 
@@ -31,9 +31,9 @@ type (
 	Params struct {
 		dig.In
 
-		Logger *zap.Logger
-		Config *viper.Viper
-		Group  []Service `group:"services"`
+		Logger   *zap.Logger
+		Group    []Service     `group:"services"`
+		Shutdown time.Duration `name:"service_shutdown_timeout"`
 	}
 
 	multiple struct {
@@ -42,15 +42,14 @@ type (
 	}
 )
 
-// ShutdownTimeoutParam name for viper setting.
-const ShutdownTimeoutParam = "shutdown_timeout"
-
 // create group of services.
 func newGroup(p Params) Group {
 	run := &multiple{
 		Logger:  p.Logger,
-		Service: group.New(group.WithShutdownTimeout(p.Config.GetDuration(ShutdownTimeoutParam))),
+		Service: group.New(group.WithShutdownTimeout(p.Shutdown)),
 	}
+
+	p.Logger.Info("added workers", zap.Int("count", len(p.Group)))
 
 	for i := range p.Group {
 		if p.Group[i] == nil {

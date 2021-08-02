@@ -211,7 +211,7 @@ type testWorker struct {
 
 var _ = module.Module{
     {Constructor: NewSingleOutService()},
-    {Constructor: NewSingleService, Options: dig.Group("services")},
+    {Constructor: NewSingleService, Options: []dig.ProvideOption{dig.Group("services,flatten")},
 }
 
 func (w *testWorker) Start(context.Context) error { return nil }
@@ -222,7 +222,7 @@ func NewSingleOutService() OutParams {
     return OutParams{ Service: &testWorker{name: "worker1"} }
 }
 
-// module.New(NewSingleService, dig.Group("services")
+// module.New(NewSingleService, dig.Group("services,flatten")
 func NewSingleService() service.Service {
     return &testWorker{name: "worker1"}
 }
@@ -254,7 +254,7 @@ type testWorker struct {
 
 var _ = module.Module{
     {Constructor: NewMultipleOut},
-    {Constructor: NewMultiple, Options: dig.Group("services,flatten")},
+    {Constructor: NewMultiple, Options: []dig.ProvideOption{dig.Group("services,flatten")},
 }
 
 func (w *testWorker) Start(context.Context) error { return nil }
