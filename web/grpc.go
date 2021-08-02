@@ -122,7 +122,7 @@ func (g *gRPC) Name() string {
 
 // Start tries to start gRPC service.
 // If something went wrong it returns an error.
-// If could not start server panics.
+// If service could not start returns an error.
 func (g *gRPC) Start(context.Context) error {
 	if g.server == nil {
 		return ErrEmptyGRPCServer

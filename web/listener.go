@@ -93,8 +93,8 @@ func NewListener(lis Listener, opts ...ListenerOption) (service.Service, error) 
 func (l *listener) Name() string { return l.name }
 
 // Start tries to start the Listener and returns an error
-// if the Listener is empty. If something went wrong and
-// errors not ignored should panic.
+// if the Listener is empty. If something went wrong
+// returns an error.
 func (l *listener) Start(context.Context) error {
 	if l.server == nil {
 		return l.catch(ErrEmptyListener)
@@ -108,7 +108,10 @@ func (l *listener) Start(context.Context) error {
 // by options and if used skip errors.
 func (l *listener) Stop(ctx context.Context) {
 	if l.server == nil {
-		panic(ErrEmptyListener)
+		l.logger.Error(ErrEmptyListener.Error(),
+			zap.String("name", l.name))
+
+		return
 	}
 
 	if err := l.catch(l.server.Shutdown(ctx)); err != nil {

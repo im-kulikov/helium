@@ -1,14 +1,19 @@
 package web
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/json"
+	"io"
 	"net"
 	"net/http"
 	"testing"
 	"time"
 
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 	"google.golang.org/grpc/test/bufconn"
 
@@ -16,7 +21,63 @@ import (
 	"github.com/im-kulikov/helium/internal"
 )
 
+type testLogger struct {
+	*zap.Logger
+	*bytes.Buffer
+
+	Result *testLogResult
+}
+
+type fakeWriteSyncer struct {
+	io.Writer
+}
+
+var _ zapcore.WriteSyncer = (*fakeWriteSyncer)(nil)
+
+func (f *fakeWriteSyncer) Sync() error { return nil }
+
+type testLogResult struct {
+	L, T, M string
+	E       string `json:"error"`
+	N       string `json:"name"`
+}
+
+func newTestLogger() *testLogger {
+	buf := new(bytes.Buffer)
+
+	return &testLogger{
+		Buffer: buf,
+
+		Logger: zap.New(zapcore.NewCore(
+			zapcore.NewJSONEncoder(zap.NewDevelopmentEncoderConfig()),
+			&fakeWriteSyncer{Writer: buf},
+			zapcore.DebugLevel)),
+
+		Result: new(testLogResult),
+	}
+}
+
+func (tl *testLogger) Error() string {
+	return tl.Result.E
+}
+
+func (tl *testLogger) Cleanup() {
+	tl.Buffer.Reset()
+	tl.Result = new(testLogResult)
+}
+
+func (tl *testLogger) Empty() bool {
+	return tl.Buffer.String() == ""
+}
+
+func (tl *testLogger) Decode() error {
+	return json.NewDecoder(tl.Buffer).Decode(&tl.Result)
+}
+
 func TestHTTPService(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second*15)
+	defer cancel()
+
 	t.Run("should set network and address", func(t *testing.T) {
 		lis, err := net.Listen("tcp", "127.0.0.1:0")
 		require.NoError(t, err)
@@ -51,10 +112,14 @@ func TestHTTPService(t *testing.T) {
 	})
 
 	t.Run("should fail on Start and Stop", func(t *testing.T) {
-		require.EqualError(t, (&httpService{}).Start(context.Background()), ErrEmptyHTTPServer.Error())
-		require.Panics(t, func() {
-			(&httpService{}).Stop(context.Background())
-		}, ErrEmptyHTTPServer.Error())
+		log := newTestLogger()
+
+		require.EqualError(t, (&httpService{logger: log.Logger}).Start(ctx), ErrEmptyHTTPServer.Error())
+		log.Cleanup()
+
+		(&httpService{logger: log.Logger}).Stop(ctx)
+		require.NoError(t, log.Decode())
+		require.EqualError(t, log, ErrEmptyHTTPServer.Error())
 	})
 
 	t.Run("should fail on net.Listen", func(t *testing.T) {
@@ -74,11 +139,11 @@ func TestHTTPService(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, serve.Name())
 
-		ctx, cancel := context.WithCancel(context.Background())
+		top, stop := context.WithCancel(ctx)
 		require.NoError(t, group.New().
-			Add(serve.Start, func(context.Context) { serve.Stop(ctx) }).
+			Add(serve.Start, func(context.Context) { serve.Stop(top) }).
 			Add(func(ctx context.Context) error {
-				cancel()
+				stop()
 
 				con, errConn := lis.Dial()
 				if errConn != nil {
@@ -94,7 +159,7 @@ func TestHTTPService(t *testing.T) {
 
 				return nil
 			}, func(context.Context) {}).
-			Run(ctx))
+			Run(top))
 	})
 
 	t.Run("should not fail for tls", func(t *testing.T) {
@@ -114,14 +179,14 @@ func TestHTTPService(t *testing.T) {
 		require.NoError(t, err)
 		require.NotEmpty(t, serve.Name())
 
-		ctx, cancel := context.WithCancel(context.Background())
+		top, stop := context.WithCancel(ctx)
 		require.NoError(t, group.New().
 			Add(serve.Start, serve.Stop).
 			Add(func(context.Context) error {
-				cancel()
+				stop()
 
 				return nil
 			}, func(context.Context) {}).
-			Run(ctx))
+			Run(top))
 	})
 }

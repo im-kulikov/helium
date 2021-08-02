@@ -7,6 +7,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 
 	"github.com/im-kulikov/helium/internal"
 )
@@ -64,38 +65,66 @@ func TestListenerService(t *testing.T) {
 		require.EqualError(t, err, ErrEmptyListener.Error())
 	})
 
-	t.Run("should fail on Start and Stop", func(t *testing.T) {
-		require.EqualError(t, (&listener{}).Start(ctx), ErrEmptyListener.Error())
-		require.Panics(t, func() {
-			(&listener{logger: log}).Stop(ctx)
-		}, ErrEmptyListener.Error())
+	t.Run("should error on Start and Stop", func(t *testing.T) {
+		l := newTestLogger()
+
+		require.EqualError(t, (&listener{logger: l.Logger}).Start(ctx), ErrEmptyListener.Error())
+		l.Cleanup()
+
+		(&listener{name: listenerTestName, logger: l.Logger}).Stop(ctx)
+		require.NoError(t, l.Decode())
+
+		require.Equal(t, l.Result.N, listenerTestName)
+		require.Equal(t, l.Result.M, ErrEmptyListener.Error())
+		require.Equal(t, l.Result.L, zapcore.ErrorLevel.CapitalString())
 	})
 
 	t.Run("should successfully start and stop", func(t *testing.T) {
-		require.NoError(t, (&listener{server: &fakeListener{}}).Start(ctx))
-		require.NotPanics(t, func() {
-			(&listener{
-				logger: log,
-				server: &fakeListener{stopError: ErrEmptyLogger},
-			}).Stop(ctx)
-		})
+		l := newTestLogger()
+
+		require.NoError(t, (&listener{
+			logger: l.Logger,
+			server: &fakeListener{},
+		}).Start(ctx))
+
+		l.Cleanup()
+
+		(&listener{
+			name:   listenerTestName,
+			logger: l.Logger,
+			server: &fakeListener{stopError: ErrEmptyListener},
+		}).Stop(ctx)
+		require.NoError(t, l.Decode())
+
+		require.Equal(t, l.Result.N, listenerTestName)
+		require.Equal(t, l.Result.E, ErrEmptyListener.Error())
+		require.Equal(t, l.Result.M, "could not stop listener")
+		require.Equal(t, l.Result.L, zapcore.ErrorLevel.CapitalString())
 	})
 
 	t.Run("should skip errors", func(t *testing.T) {
-		s := &fakeListener{stopError: errStopping}
-		serve, err := NewListener(s, ListenerSkipErrors())
+		l := newTestLogger()
+		lis := &fakeListener{stopError: errStopping}
+
+		serve, err := NewListener(lis,
+			ListenerSkipErrors(),
+			ListenerWithLogger(l.Logger))
 		require.NoError(t, err)
-		require.NotPanics(t, func() {
-			serve.Stop(ctx)
-		})
+
+		serve.Stop(ctx)
+		require.True(t, l.Empty())
 	})
 
 	t.Run("should ignore errors", func(t *testing.T) {
-		s := &fakeListener{stopError: ErrEmptyListener}
-		serve, err := NewListener(s, ListenerIgnoreError(ErrEmptyListener))
+		l := newTestLogger()
+		lis := &fakeListener{stopError: ErrEmptyListener}
+
+		serve, err := NewListener(lis,
+			ListenerIgnoreError(ErrEmptyListener),
+			ListenerWithLogger(l.Logger))
 		require.NoError(t, err)
-		require.NotPanics(t, func() {
-			serve.Stop(ctx)
-		})
+
+		serve.Stop(ctx)
+		require.True(t, l.Empty())
 	})
 }

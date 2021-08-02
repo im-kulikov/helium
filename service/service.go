@@ -22,7 +22,7 @@ type (
 		Name() string
 	}
 
-	// Group wrapper around group of servicesl.
+	// Group wrapper around group of services.
 	Group interface {
 		Run(context.Context) error
 	}

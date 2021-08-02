@@ -49,10 +49,14 @@ func TestGRPCService(t *testing.T) {
 	})
 
 	t.Run("should fail on Start and Stop", func(t *testing.T) {
-		require.EqualError(t, (&gRPC{}).Start(nil), ErrEmptyGRPCServer.Error())
-		require.Panics(t, func() {
-			(&gRPC{}).Stop(nil)
-		}, ErrEmptyGRPCServer.Error())
+		log := newTestLogger()
+
+		require.EqualError(t, (&gRPC{logger: log.Logger}).Start(nil), ErrEmptyGRPCServer.Error())
+		log.Cleanup()
+
+		(&gRPC{logger: log.Logger}).Stop(nil)
+		require.NoError(t, log.Decode())
+		require.EqualError(t, log, ErrEmptyGRPCServer.Error())
 	})
 
 	t.Run("should fail on net.Listen", func(t *testing.T) {
