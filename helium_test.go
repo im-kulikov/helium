@@ -34,7 +34,7 @@ type (
 	}
 )
 
-const testError = Error("test")
+const errTest = Error("test")
 
 func (e Error) Error() string {
 	return string(e)
@@ -45,7 +45,7 @@ func (e TestError) Error() string {
 }
 
 func (h heliumApp) Run(context.Context) error    { return nil }
-func (h heliumErrApp) Run(context.Context) error { return testError }
+func (h heliumErrApp) Run(context.Context) error { return errTest }
 
 func TestHelium(t *testing.T) {
 	t.Run("create new helium without errors", func(t *testing.T) {
@@ -160,10 +160,10 @@ func TestHelium(t *testing.T) {
 			defer monkey.UnpatchAll()
 
 			monkey.Patch(logger.NewLogger, func(*logger.Config, *settings.Core) (*zap.Logger, error) {
-				return nil, testError
+				return nil, errTest
 			})
 			defer monkey.Unpatch(logger.NewLogger)
-			err := testError
+			err := errTest
 			Catch(err)
 			require.Equal(t, 2, exitCode)
 		})
@@ -186,7 +186,7 @@ func TestHelium(t *testing.T) {
 			})
 			defer monkey.Unpatch(logger.NewLogger)
 
-			err := testError
+			err := errTest
 			Catch(err)
 			require.Equal(t, 1, exitCode)
 		})
@@ -218,7 +218,7 @@ func TestHelium(t *testing.T) {
 
 			require.Panics(t, func() {
 				CatchTrace(
-					testError)
+					errTest)
 			})
 
 			require.Empty(t, exitCode)
