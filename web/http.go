@@ -45,15 +45,15 @@ func HTTPName(name string) HTTPOption {
 	}
 }
 
-// HTTPListenNetwork allows to change default (tcp) network for net.Listener.
+// HTTPListenNetwork allows changing default (tcp) network for net.Listener.
 func HTTPListenNetwork(network string) HTTPOption {
 	return func(s *httpService) {
 		s.network = network
 	}
 }
 
-// HTTPListenAddress allows to change network for net.Listener.
-// By default it takes address from http.Server.
+// HTTPListenAddress allows changing network for net.Listener.
+// By default, it takes address from http.Server.
 func HTTPListenAddress(address string) HTTPOption {
 	return func(s *httpService) {
 		s.address = address
