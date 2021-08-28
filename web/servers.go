@@ -294,7 +294,7 @@ func NewHTTPServer(p HTTPParams) (ServerResult, error) {
 		return ServerResult{}, err
 	}
 
-	p.Logger.Info("creates http server", zap.String("name", p.Name), zap.String("address", address))
+	p.Logger.Info("creating http server", zap.String("name", p.Name), zap.String("address", address))
 
 	return ServerResult{Server: serve}, nil
 }
