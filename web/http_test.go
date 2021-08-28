@@ -21,7 +21,7 @@ import (
 	"github.com/im-kulikov/helium/internal"
 )
 
-type testLogger struct {
+type logger struct {
 	*zap.Logger
 	*bytes.Buffer
 
@@ -42,10 +42,10 @@ type testLogResult struct {
 	N       string `json:"name"`
 }
 
-func newTestLogger() *testLogger {
+func newTestLogger() *logger {
 	buf := new(bytes.Buffer)
 
-	return &testLogger{
+	return &logger{
 		Buffer: buf,
 
 		Logger: zap.New(zapcore.NewCore(
@@ -57,20 +57,20 @@ func newTestLogger() *testLogger {
 	}
 }
 
-func (tl *testLogger) Error() string {
+func (tl *logger) Error() string {
 	return tl.Result.E
 }
 
-func (tl *testLogger) Cleanup() {
+func (tl *logger) Cleanup() {
 	tl.Buffer.Reset()
 	tl.Result = new(testLogResult)
 }
 
-func (tl *testLogger) Empty() bool {
+func (tl *logger) Empty() bool {
 	return tl.Buffer.String() == ""
 }
 
-func (tl *testLogger) Decode() error {
+func (tl *logger) Decode() error {
 	return json.NewDecoder(tl.Buffer).Decode(&tl.Result)
 }
 

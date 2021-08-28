@@ -27,12 +27,12 @@ func (e *errService) Start(_ context.Context) error {
 		return nil
 	}
 
-	return testError
+	return errTest
 }
 
 func (e *errService) Stop(context.Context) {
 	if e.stop {
-		e.Store(testError)
+		e.Store(errTest)
 	}
 }
 
@@ -71,7 +71,7 @@ func TestDefaultApp(t *testing.T) {
 		require.NotNil(t, h)
 		require.NoError(t, err)
 
-		require.EqualError(t, h.Run(), testError.Error())
+		require.EqualError(t, h.Run(), errTest.Error())
 
 		cancel()
 	})
@@ -93,6 +93,6 @@ func TestDefaultApp(t *testing.T) {
 
 		cancel()
 		require.NoError(t, h.Run())
-		require.EqualError(t, svc.Load(), testError.Error())
+		require.EqualError(t, svc.Load(), errTest.Error())
 	})
 }
