@@ -210,19 +210,22 @@ type testWorker struct {
 }
 
 var _ = module.Module{
+    // when you expose OutParams with `group:"services"`
     {Constructor: NewSingleOutService()},
-    {Constructor: NewSingleService, Options: []dig.ProvideOption{dig.Group("services,flatten")},
+    // when you use Options (dig.Group("services,flatten") and directly expose service.Service.
+    {Constructor: NewSingleService, Options: []dig.ProvideOption{dig.Group("services,flatten")}},
 }
 
 func (w *testWorker) Start(context.Context) error { return nil }
 func (w *testWorker) Stop(context.Context) { }
 func (w *testWorker) Name() string { return w.name }
 
+// NewSingleOutService used with OutParams and  module.New(NewSingleOutService).
 func NewSingleOutService() OutParams {
     return OutParams{ Service: &testWorker{name: "worker1"} }
 }
 
-// module.New(NewSingleService, dig.Group("services,flatten")
+// NewSingleService used with module.New(NewSingleService, dig.Group("services,flatten")).
 func NewSingleService() service.Service {
     return &testWorker{name: "worker1"}
 }
@@ -506,8 +509,8 @@ Viper is a prioritized configuration registry. It maintains a set of configurati
 ## Web Module
 
 - `ServersModule` puts into container [web.Service](https://github.com/im-kulikov/web/service.go):
-    - [pprof](https://golang.org/pkg/net/http/pprof/) endpoint
-    - [metrics](https://github.com/prometheus/client_golang) enpoint (by Prometheus)
+    - [pprof](https://pkg.go.dev/net/http/pprof) endpoint
+    - [metrics](https://pkg.go.dev/github.com/prometheus/client_golang) enpoint (by Prometheus)
     - [gRPC](https://github.com/golang/protobuf) endpoint
     - [Listener](https://github.com/im-kulikov/web/listener.go) allows provide custom web service and run it in scope. 
     - You can pass `pprof_handler` and/or `metric_handler`, that will be embedded into common handler,
@@ -515,6 +518,12 @@ Viper is a prioritized configuration registry. It maintains a set of configurati
     - You can pass `api_listener`, `pprof_listener`, `metric_listener` to use them instead of network
       and address from settings
     - **api** endpoint by passing http.Handler from DI
+- `OpsModule` puts into container [web.Service](https://github.com/im-kulikov/web/service.go):
+  - [pprof](https://pkg.go.dev/net/http/pprof) `/debug/pprof` endpoints
+  - [expvar](https://pkg.go.dev/expvar#Handler) `/debug/vars` endpoint
+  - [metrics](https://pkg.go.dev/github.com/prometheus/client_golang) `/metrics` endpoint
+  - health and ready endpoints
+  
 - [`echo.Module`](https://github.com/go-helium/echo) boilerplate that preconfigures echo.Engine for you
     - with custom Binder / Logger / Validator / ErrorHandler
     - bind - simple replacement for echo.Binder
@@ -522,7 +531,6 @@ Viper is a prioritized configuration registry. It maintains a set of configurati
     - logger - provides echo.Logger that pass calls to **zap.Logger**
 
 Configuration:
-- yaml example
 ```yaml
 pprof:
   address: :6060
@@ -536,8 +544,8 @@ api:
   address: :8080
   shutdown_timeout: 10s
 ```
-- env example
-```
+
+```dotenv
 PPROF_ADDRESS=string
 PPROF_SHUTDOWN_TIMEOUT=duration
 METRICS_ADDRESS=string
@@ -561,6 +569,35 @@ API_ADDRESS=string
 - `network` - (string) tcp, udp, etc
 - `skip_errors` - allows ignore all errors
 - `disabled` - (bool) to disable server
+
+**OPS server configuration**
+```yaml
+ops:
+  address: ":8081"
+  network: "tcp"
+  name: "ops-server" # by default
+  disable_healthy: false
+  disable_metrics: false
+  disable_pprof: false
+  idle_timeout: 0s
+  max_header_bytes: 0
+  read_header_timeout: 0s
+  read_timeout: 0s
+  write_timeout: 0s
+```
+
+```dotenv
+OPS_ADDRESS=string
+OPS_NETWORK=string
+OPS_READ_TIMEOUT=duration
+OPS_READ_HEADER_TIMEOUT=duration
+OPS_WRITE_TIMEOUT=duration
+OPS_IDLE_TIMEOUT=duration
+OPS_MAX_HEADER_BYTES=int
+OPS_DISABLE_METRICS=bool
+OPS_DISABLE_PROFILE=bool
+OPS_DISABLE_HEALTHY=bool
+```
 
 **Listener example:**
 ```go
