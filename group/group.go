@@ -95,26 +95,29 @@ func (g *group) Run(ctx context.Context) error {
 	var (
 		cnt int
 		err error
-		top = ctx
 		res = make(chan error, len(g.services))
 	)
 
+	// we should add cancel to prevent service freeze
+	top, cancel := context.WithCancel(ctx)
+
 	// run all services
 	for i := range g.services {
-		go func(callback Callback) { res <- callback(ctx) }(g.services[i].callback)
+		go func(callback Callback) { res <- callback(top) }(g.services[i].callback)
 	}
 
 	// wait for context.Done() or error will be received:
 	select {
 	case err = <-res:
 		cnt = 1 // first error received, ignore it in future
-	case <-ctx.Done():
-		err = ctx.Err()
-		top = context.Background()
+	case <-top.Done():
+		err = top.Err()
 	}
 
+	cancel()
+
 	// prepare graceful context to stop
-	grace, stop := context.WithTimeout(top, g.shutdown)
+	grace, stop := context.WithTimeout(context.Background(), g.shutdown)
 	defer stop()
 
 	// we should wait until all services will gracefully stopped

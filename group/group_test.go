@@ -46,6 +46,37 @@ func TestNew(t *testing.T) {
 		})
 	}
 
+	{ // should stop all services when one is failed
+		ctx, cancel := context.WithCancel(context.Background())
+		cases = append(cases, testCase{
+			name: "should stop all services when one is failed",
+
+			ctx:    ctx,
+			cancel: cancel,
+
+			await: defaultAwait,
+
+			shutdown: time.Nanosecond,
+			expect:   errAlways,
+			services: []service{
+				{
+					shutdown: func(ctx context.Context) { <-ctx.Done() },
+					callback: func(context.Context) error { return errAlways },
+				},
+
+				{
+					shutdown: func(ctx context.Context) { <-ctx.Done() },
+					callback: func(ctx context.Context) error {
+						// should not freeze
+						<-ctx.Done()
+
+						return ctx.Err()
+					},
+				},
+			},
+		})
+	}
+
 	{ // errored service
 		ctx, cancel := context.WithCancel(context.Background())
 		cases = append(cases, testCase{
