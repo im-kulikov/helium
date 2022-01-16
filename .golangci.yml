@@ -1,16 +1,27 @@
 linters:
-  enable-all: true
+  enable-all: false
+  enable:
+    - unparam
+    - whitespace
+    - unconvert
+    - bodyclose
+    - gofmt
+    - gocritic
+    - godot
+    - prealloc
+    - rowserrcheck
+    - unconvert
+    - lll
+    - cyclop
+    - gci
+    - gosec
+    - prealloc
+    - revive
+    - gochecknoglobals
+    - funlen
   disable:
-    - testpackage
-    - wrapcheck
-    - interfacer
-    - scopelint
-    - maligned
-    - paralleltest
-    - tparallel
-    - stylecheck
-    - golint
-    - exhaustivestruct
+    - errcheck
+    - ineffassign
 
 linters-settings:
   govet:
