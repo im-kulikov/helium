@@ -3,9 +3,7 @@ package web
 import (
 	"net"
 	"net/http"
-	"net/http/pprof"
 
-	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
@@ -46,24 +44,6 @@ type (
 		Server service.Service `group:"services"`
 	}
 
-	profileParams struct {
-		dig.In
-
-		Logger   *zap.Logger
-		Viper    *viper.Viper
-		Handler  http.Handler `name:"pprof_handler" optional:"true"`
-		Listener net.Listener `name:"pprof_listener" optional:"true"`
-	}
-
-	metricParams struct {
-		dig.In
-
-		Logger   *zap.Logger
-		Viper    *viper.Viper
-		Handler  http.Handler `name:"metric_handler" optional:"true"`
-		Listener net.Listener `name:"metric_listener" optional:"true"`
-	}
-
 	grpcParams struct {
 		dig.In
 
@@ -77,10 +57,8 @@ type (
 )
 
 const (
-	apiServer     = "api"
-	gRPCServer    = "grpc"
-	profileServer = "pprof"
-	metricsServer = "metric"
+	apiServer  = "api"
+	gRPCServer = "grpc"
 
 	// ErrEmptyLogger is raised when empty logger passed into New function.
 	ErrEmptyLogger = internal.Error("empty logger")
@@ -91,8 +69,7 @@ var (
 	// nolint:gochecknoglobals
 	DefaultServersModule = module.Combine(
 		DefaultGRPCModule,
-		ProfilerModule,
-		MetricsModule,
+		OpsModule,
 		APIModule,
 	)
 
@@ -100,58 +77,10 @@ var (
 	// nolint:gochecknoglobals
 	APIModule = module.New(NewAPIServer)
 
-	// ProfilerModule defines pprof server module.
-	// nolint:gochecknoglobals
-	ProfilerModule = module.New(newProfileServer)
-
-	// MetricsModule defines prometheus server module.
-	// nolint:gochecknoglobals
-	MetricsModule = module.New(newMetricServer)
-
 	// DefaultGRPCModule defines default gRPC server module.
 	// nolint:gochecknoglobals
 	DefaultGRPCModule = module.New(newDefaultGRPCServer)
 )
-
-func newProfileServer(p profileParams) (ServerResult, error) {
-	mux := http.NewServeMux()
-	mux.HandleFunc("/debug/pprof/", pprof.Index)
-	mux.HandleFunc("/debug/pprof/cmdline", pprof.Cmdline)
-	mux.HandleFunc("/debug/pprof/profile", pprof.Profile)
-	mux.HandleFunc("/debug/pprof/symbol", pprof.Symbol)
-	mux.HandleFunc("/debug/pprof/trace", pprof.Trace)
-
-	if p.Handler != nil {
-		mux.Handle("/", p.Handler)
-	}
-
-	return NewHTTPServer(HTTPParams{
-		Config:   p.Viper,
-		Logger:   p.Logger,
-		Name:     profileServer,
-		Key:      profileServer,
-		Handler:  mux,
-		Listener: p.Listener,
-	})
-}
-
-func newMetricServer(p metricParams) (ServerResult, error) {
-	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
-
-	if p.Handler != nil {
-		mux.Handle("/", p.Handler)
-	}
-
-	return NewHTTPServer(HTTPParams{
-		Config:   p.Viper,
-		Logger:   p.Logger,
-		Name:     metricsServer,
-		Key:      metricsServer,
-		Handler:  mux,
-		Listener: p.Listener,
-	})
-}
 
 // NewAPIServer creates api server by http.Handler from DI container.
 func NewAPIServer(p APIParams) (ServerResult, error) {
@@ -225,7 +154,7 @@ func newDefaultGRPCServer(p grpcParams) (ServerResult, error) {
 	return ServerResult{Server: serve}, err
 }
 
-// NewHTTPServer creates http-server that will be embedded into multi-server.
+// NewHTTPServer creates http-server that will be embedded into multiple server.
 func NewHTTPServer(p HTTPParams) (ServerResult, error) {
 	switch {
 	case p.Logger == nil:

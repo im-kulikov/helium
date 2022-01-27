@@ -16,22 +16,23 @@
 
 * [Why Helium](#why-helium)
 * [About Helium and modules](#about-helium-and-modules)
-    * [Preconfigure](#defaults-and-preconfigure)
-    * [Group](#group-services)
-    * [Services](#service-module)
-    * [Logger](#logger-module)
-    * [NATS](#nats-module)
-    * [PostgreSQL](#postgresql-module)
-    * [Redis](#redis-module)
-    * [Settings](#settings-module)
-    * [Web](#web-module)
-* [Examples of code](https://github.com/go-helium/demos)
+  + [Defaults and preconfigure](#defaults-and-preconfigure)
+* [Group (services)](#group--services-)
+  + [Service module](#service-module)
+  + [Logger module](#logger-module)
+* [NATS Module](#nats-module)
+* [PostgreSQL Module](#postgresql-module)
+* [Redis Module](#redis-module)
+* [Settings module](#settings-module)
+* [Web Module](#web-module)
 * [Project Examples](#project-examples)
 * [Example](#example)
 * [Supported Go versions](#supported-go-versions)
 * [Contribute](#contribute)
 * [Credits](#credits)
 * [License](#license)
+
+<small><i><a href='http://ecotrust-canada.github.io/markdown-toc/'>Table of contents generated with markdown-toc</a></i></small>
 
 ## Why Helium
 
@@ -509,8 +510,6 @@ Viper is a prioritized configuration registry. It maintains a set of configurati
 ## Web Module
 
 - `ServersModule` puts into container [web.Service](https://github.com/im-kulikov/web/service.go):
-    - [pprof](https://pkg.go.dev/net/http/pprof) endpoint
-    - [metrics](https://pkg.go.dev/github.com/prometheus/client_golang) enpoint (by Prometheus)
     - [gRPC](https://github.com/golang/protobuf) endpoint
     - [Listener](https://github.com/im-kulikov/web/listener.go) allows provide custom web service and run it in scope. 
     - You can pass `pprof_handler` and/or `metric_handler`, that will be embedded into common handler,
@@ -532,32 +531,58 @@ Viper is a prioritized configuration registry. It maintains a set of configurati
 
 Configuration:
 ```yaml
-pprof:
+ops:
   address: :6060
-  shutdown_timeout: 10s
-
-metrics:
-  address: :8090
-  shutdown_timeout: 10s
+  network: string
+  disable_metrics: bool
+  disable_pprof: bool
+  disable_healthy: bool
+  read_timeout: duration
+  read_header_timeout: duration
+  write_timeout: duration
+  idle_timeout: duration
+  max_header_bytes: int
 
 api:
   address: :8080
-  shutdown_timeout: 10s
+  network: string
+  disable_metrics: bool
+  disable_pprof: bool
+  disable_healthy: bool
+  read_timeout: duration
+  read_header_timeout: duration
+  write_timeout: duration
+  idle_timeout: duration
+  max_header_bytes: int
 ```
 
 ```dotenv
-PPROF_ADDRESS=string
-PPROF_SHUTDOWN_TIMEOUT=duration
-METRICS_ADDRESS=string
-METRICS_SHUTDOWN_TIMEOUT=duration
+OPS_ADDRESS=string
+OPS_NETWORK=string
+OPS_DISABLE_METRICS=bool
+OPS_DISABLE_PPROF=bool
+OPS_DISABLE_HEALTHY=bool
+OPS_READ_TIMEOUT=duration
+OPS_READ_HEADER_TIMEOUT=duration
+OPS_WRITE_TIMEOUT=duration
+OPS_IDLE_TIMEOUT=duration
+OPS_MAX_HEADER_BYTES=int
+
 API_ADDRESS=string
+API_NETWORK=string
+API_DISABLE_METRICS=bool
+API_DISABLE_PPROF=bool
+API_DISABLE_HEALTHY=bool
+API_READ_TIMEOUT=duration
+API_READ_HEADER_TIMEOUT=duration
+API_WRITE_TIMEOUT=duration
+API_IDLE_TIMEOUT=duration
+API_MAX_HEADER_BYTES=int
 ```
 
 **Possible options for HTTP server**:
 - `address` - (string) host and port
 - `network` - (string) tcp, udp, etc
-- `skip_errors` - allows ignore all errors
-- `disabled` - (bool) to disable server
 - `read_timeout` - (duration) is the maximum duration for reading the entire request, including the body
 - `read_header_timeout` - (duration) is the amount of time allowed to read request headers
 - `write_timeout` - (duration) is the maximum duration before timing out writes of the response

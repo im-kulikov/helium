@@ -57,8 +57,16 @@ func newTestLogger() *logger {
 	}
 }
 
-func (tl *logger) Error() string {
-	return tl.Result.E
+func (tl *logger) Err() error {
+	if tl.Result == nil || tl.Result.E == "" {
+		return nil
+	}
+
+	return tl.Result
+}
+
+func (e testLogResult) Error() string {
+	return e.E
 }
 
 func (tl *logger) Cleanup() {
@@ -119,7 +127,7 @@ func TestHTTPService(t *testing.T) {
 
 		(&httpService{logger: log.Logger}).Stop(ctx)
 		require.NoError(t, log.Decode())
-		require.EqualError(t, log, ErrEmptyHTTPServer.Error())
+		require.EqualError(t, log.Err(), ErrEmptyHTTPServer.Error())
 	})
 
 	t.Run("should fail on net.Listen", func(t *testing.T) {
