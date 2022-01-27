@@ -56,7 +56,7 @@ func TestGRPCService(t *testing.T) {
 
 		(&gRPC{logger: log.Logger}).Stop(nil)
 		require.NoError(t, log.Decode())
-		require.EqualError(t, log, ErrEmptyGRPCServer.Error())
+		require.EqualError(t, log.Err(), ErrEmptyGRPCServer.Error())
 	})
 
 	t.Run("should fail on net.Listen", func(t *testing.T) {
