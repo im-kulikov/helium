@@ -18,6 +18,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/status"
 	"google.golang.org/grpc/test/bufconn"
 	gt "google.golang.org/grpc/test/grpc_testing"
@@ -153,87 +154,34 @@ func TestServers(t *testing.T) {
 		})
 	})
 
-	t.Run("check pprof server", func(t *testing.T) {
-		t.Run("without logger", func(t *testing.T) {
-			params := profileParams{Viper: v}
-			serve, err := newProfileServer(params)
-			require.EqualError(t, err, ErrEmptyLogger.Error())
-			require.Nil(t, serve.Server)
-		})
-
-		t.Run("without config", func(t *testing.T) {
-			params := profileParams{Logger: zaptest.NewLogger(t)}
-			serve, err := newProfileServer(params)
-			require.NoError(t, err)
-			require.Nil(t, serve.Server)
-		})
-
-		t.Run("with config", func(t *testing.T) {
-			lis := bufconn.Listen(listenSize)
-			defer require.NoError(t, lis.Close())
-
-			params := profileParams{Viper: v, Listener: lis, Logger: zaptest.NewLogger(t)}
-			serve, err := newProfileServer(params)
-			require.NoError(t, err)
-			require.NotNil(t, serve.Server)
-			require.IsType(t, &httpService{}, serve.Server)
-		})
-	})
-
-	t.Run("check metrics server", func(t *testing.T) {
-		t.Run("without config", func(t *testing.T) {
-			params := metricParams{Logger: zaptest.NewLogger(t)}
-			serve, err := newMetricServer(params)
-			require.NoError(t, err)
-			require.Nil(t, serve.Server)
-		})
-
-		t.Run("should fail on NewHTTPService", func(t *testing.T) {
-			cfg := viper.New()
-			cfg.SetDefault(metricsServer+".address", "test")
-			cfg.SetDefault(metricsServer+".network", "test")
-
-			params := metricParams{
-				Viper:  cfg,
-				Logger: zaptest.NewLogger(t),
-			}
-
-			serve, err := newMetricServer(params)
-			require.EqualError(t, err, "listen test: unknown network test")
-			require.Nil(t, serve.Server)
-		})
-
-		t.Run("with config", func(t *testing.T) {
-			lis := bufconn.Listen(listenSize)
-			defer require.NoError(t, lis.Close())
-
-			params := metricParams{Viper: v, Listener: lis, Logger: zaptest.NewLogger(t)}
-			serve, err := newMetricServer(params)
-			require.NoError(t, err)
-			require.NotNil(t, serve.Server)
-			require.IsType(t, &httpService{}, serve.Server)
-		})
-	})
-
 	t.Run("empty viper or config key for http-server", func(t *testing.T) {
 		is := require.New(t)
 
 		v.SetDefault("test-api.disabled", true)
-		z, err := zap.NewDevelopment()
-		is.NoError(err)
 
 		testHTTPHandler(is)
 
 		t.Run("empty key", func(t *testing.T) {
-			serve, err := NewHTTPServer(HTTPParams{Logger: z})
+			serve, err := NewHTTPServer(HTTPParams{Logger: zaptest.NewLogger(t)})
 			require.NoError(t, err)
 			require.Nil(t, serve.Server)
 		})
 
 		t.Run("empty viper", func(t *testing.T) {
-			serve, err := NewHTTPServer(HTTPParams{Logger: z, Key: testHTTPServe})
+			serve, err := NewHTTPServer(HTTPParams{Logger: zaptest.NewLogger(t), Key: testHTTPServe})
 			require.NoError(t, err)
 			require.Nil(t, serve.Server)
+		})
+
+		t.Run("empty http-address", func(t *testing.T) {
+			serve, err := NewHTTPServer(HTTPParams{
+				Key:     testHTTPServe,
+				Config:  viper.New(),
+				Handler: http.NewServeMux(),
+				Logger:  zaptest.NewLogger(t),
+			})
+			require.Nil(t, serve.Server)
+			require.EqualError(t, err, ErrEmptyHTTPAddress.Error())
 		})
 	})
 
@@ -335,11 +283,11 @@ func TestServers(t *testing.T) {
 		cfg.SetDefault(apiServer+".read_header_timeout", time.Second)
 		cfg.SetDefault(apiServer+".max_header_bytes", math.MaxInt32)
 
+		OpsDefaults(cfg)
+
 		listeners := map[string]*bufconn.Listener{
-			apiServer:     bufconn.Listen(listenSize),
-			gRPCServer:    bufconn.Listen(listenSize),
-			profileServer: bufconn.Listen(listenSize),
-			metricsServer: bufconn.Listen(listenSize),
+			apiServer:  bufconn.Listen(listenSize),
+			gRPCServer: bufconn.Listen(listenSize),
 		}
 
 		mod := module.Module{
@@ -428,7 +376,7 @@ func TestServers(t *testing.T) {
 					case gRPCServer:
 						conn, err := grpc.DialContext(ctx, lis.Addr().String(),
 							grpc.WithBlock(),
-							grpc.WithInsecure(),
+							grpc.WithTransportCredentials(insecure.NewCredentials()),
 							grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
 								return lis.Dial()
 							}))
