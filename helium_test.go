@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"bou.ke/monkey"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/dig"
 	"go.uber.org/zap"
@@ -98,6 +99,26 @@ func TestHelium(t *testing.T) {
 		require.NotNil(t, h)
 		require.NoError(t, err)
 		require.NoError(t, h.Run())
+	})
+
+	t.Run("start new helium default app with json logger and no_caller should not cause exceptions", func(t *testing.T) {
+		require.NotPanics(t, func() {
+			h, err := New(&Settings{
+				Defaults: func(v *viper.Viper) {
+					v.SetDefault("logger.format", "json")
+					v.SetDefault("logger.no_caller", true)
+				},
+			},
+				DefaultApp,
+				grace.Module,
+				settings.Module,
+				logger.Module,
+			)
+
+			require.NotNil(t, h)
+			require.NoError(t, err)
+			require.NoError(t, h.Run())
+		})
 	})
 
 	t.Run("create new helium should fail on new", func(t *testing.T) {

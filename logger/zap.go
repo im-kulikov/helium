@@ -119,7 +119,7 @@ func NewLogger(lcfg *Config, app *settings.Core) (*zap.Logger, error) {
 	}
 
 	if lcfg.NoCaller {
-		cfg.EncoderConfig.EncodeCaller = nil
+		cfg.DisableCaller = true
 	}
 
 	if lcfg.FullCaller {
