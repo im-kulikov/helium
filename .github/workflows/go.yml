@@ -24,6 +24,12 @@ jobs:
       with:
         fetch-depth: 0
 
+    - name: dump dependencies (for nancy)
+      run: go list -json -m all > go.list
+
+    - name: Nancy (deps vulnerabilities)
+      uses: sonatype-nexus-community/nancy-github-action@main
+
     - name: golangci-lint
       with: { version: latest }
       uses: golangci/golangci-lint-action@v2
