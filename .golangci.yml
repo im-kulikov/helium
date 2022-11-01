@@ -116,3 +116,6 @@ issues:
 
     # gochecknoglobals: allow version variable
     - "`version` is a global variable"
+
+    # revive: should have a package comment
+    - "package-comments: should have a package comment"

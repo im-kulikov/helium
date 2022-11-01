@@ -92,7 +92,7 @@ func TestHTTPService(t *testing.T) {
 		require.NoError(t, lis.Close())
 
 		serve, err := NewHTTPService(
-			&http.Server{},
+			&http.Server{ReadHeaderTimeout: time.Second},
 			HTTPSkipErrors(),
 			HTTPName(apiServer),
 			HTTPListener(nil),
@@ -108,7 +108,7 @@ func TestHTTPService(t *testing.T) {
 	})
 
 	t.Run("should fail on empty address", func(t *testing.T) {
-		serve, err := NewHTTPService(&http.Server{})
+		serve, err := NewHTTPService(&http.Server{ReadHeaderTimeout: time.Second})
 		require.Nil(t, serve)
 		require.EqualError(t, err, ErrEmptyHTTPAddress.Error())
 	})
@@ -131,7 +131,7 @@ func TestHTTPService(t *testing.T) {
 	})
 
 	t.Run("should fail on net.Listen", func(t *testing.T) {
-		srv, err := NewHTTPService(&http.Server{}, HTTPListenAddress("test:80"))
+		srv, err := NewHTTPService(&http.Server{ReadHeaderTimeout: time.Second}, HTTPListenAddress("test:80"))
 		require.Nil(t, srv)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "listen tcp: lookup test")
@@ -139,7 +139,7 @@ func TestHTTPService(t *testing.T) {
 
 	t.Run("should fail for serve", func(t *testing.T) {
 		lis := bufconn.Listen(listenSize)
-		s := &http.Server{}
+		s := &http.Server{ReadHeaderTimeout: time.Second}
 
 		serve, err := NewHTTPService(s,
 			HTTPListener(lis),
@@ -173,6 +173,7 @@ func TestHTTPService(t *testing.T) {
 	t.Run("should not fail for tls", func(t *testing.T) {
 		lis := bufconn.Listen(listenSize)
 		s := &http.Server{
+			ReadHeaderTimeout: time.Second,
 			// nolint:gosec
 			TLSConfig: &tls.Config{ // #nosec G402: TLS MinVersion too low.
 				GetCertificate: func(*tls.ClientHelloInfo) (*tls.Certificate, error) {

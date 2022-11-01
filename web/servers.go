@@ -3,6 +3,7 @@ package web
 import (
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/spf13/viper"
 	"go.uber.org/dig"
@@ -193,7 +194,7 @@ func NewHTTPServer(p HTTPParams) (ServerResult, error) {
 		options = append(options, HTTPSkipErrors())
 	}
 
-	hServer := &http.Server{Handler: p.Handler}
+	hServer := &http.Server{Handler: p.Handler, ReadHeaderTimeout: time.Second}
 	if p.Config.IsSet(p.Key + ".read_timeout") {
 		hServer.ReadTimeout = p.Config.GetDuration(p.Key + ".read_timeout")
 	}
