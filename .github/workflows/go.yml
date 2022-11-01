@@ -32,7 +32,7 @@ jobs:
 
     - name: golangci-lint
       with: { version: latest }
-      uses: golangci/golangci-lint-action@v2
+      uses: golangci/golangci-lint-action@v3
 
     - name: Cache go mod
       uses: actions/cache@v2
