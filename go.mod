@@ -52,3 +52,6 @@ replace bou.ke/monkey v1.0.2 => github.com/bouk/monkey v1.0.2
 
 // fix CVE-2022-32149
 replace golang.org/x/text v0.3.7 => golang.org/x/text v0.4.0
+
+// fix CVE-2022-29153
+replace github.com/hashicorp/consul/api v1.12.0 => github.com/hashicorp/consul/api v1.12.5
