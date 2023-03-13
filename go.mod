@@ -9,7 +9,7 @@ require (
 	github.com/spf13/viper v1.13.0
 	github.com/stretchr/testify v1.8.2
 	go.uber.org/atomic v1.10.0
-	go.uber.org/dig v1.15.0
+	go.uber.org/dig v1.16.1
 	go.uber.org/zap v1.24.0
 	golang.org/x/net v0.0.0-20220722155237-a158d28d115b
 	google.golang.org/grpc v1.46.2
