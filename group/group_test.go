@@ -177,7 +177,7 @@ func TestNew(t *testing.T) {
 			}
 
 			require.Equal(t, tt.expect, run.Run(tt.ctx))
-			require.LessOrEqual(t, time.Since(now), tt.await)
+			require.InDelta(t, time.Since(now), time.Millisecond*5, float64(time.Millisecond*10)) // 10ms lags
 		})
 	}
 }

@@ -1,0 +1,1 @@
+CVE-2022-29153 # helium doesn't use golang/github.com/hashicorp/consul/api
