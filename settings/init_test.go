@@ -1,7 +1,6 @@
 package settings
 
 import (
-	"io/ioutil"
 	"os"
 	"testing"
 
@@ -22,12 +21,8 @@ func TestInit(t *testing.T) {
 	t.Run("should be ok with temp file", func(t *testing.T) {
 		cfg := &Core{}
 
-		tmpFile, err := ioutil.TempFile("", "example")
+		tmpFile, err := os.CreateTemp(t.TempDir(), "example")
 		require.NoError(t, err)
-
-		defer func() {
-			require.NoError(t, os.Remove(tmpFile.Name()))
-		}() // clean up
 
 		cfg.File = tmpFile.Name()
 		v, err := New(cfg)

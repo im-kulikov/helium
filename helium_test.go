@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"log"
 	"os"
 	"strconv"
@@ -17,6 +16,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/im-kulikov/helium/grace"
+	"github.com/im-kulikov/helium/internal"
 	"github.com/im-kulikov/helium/logger"
 	"github.com/im-kulikov/helium/module"
 	"github.com/im-kulikov/helium/settings"
@@ -26,8 +26,6 @@ type (
 	heliumApp    struct{}
 	heliumErrApp struct{}
 
-	Error string
-
 	TestError struct {
 		Index  int
 		Func   interface{}
@@ -35,11 +33,7 @@ type (
 	}
 )
 
-const errTest = Error("test")
-
-func (e Error) Error() string {
-	return string(e)
-}
+const errTest = internal.Error("test")
 
 func (e TestError) Error() string {
 	return "error level: " + strconv.Itoa(e.Index)
@@ -63,12 +57,8 @@ func TestHelium(t *testing.T) {
 	})
 
 	t.Run("create new helium and setup ENV", func(t *testing.T) {
-		tmpFile, err := ioutil.TempFile("", "example")
+		tmpFile, err := os.CreateTemp(t.TempDir(), "example")
 		require.NoError(t, err)
-
-		defer func() {
-			require.NoError(t, os.Remove(tmpFile.Name()))
-		}() // clean up
 
 		err = os.Setenv("ABC_CONFIG", tmpFile.Name())
 		require.NoError(t, err)
