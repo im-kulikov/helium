@@ -9,7 +9,6 @@ linters:
     - gocritic
     - godot
     - prealloc
-    - rowserrcheck
     - unconvert
     - lll
     - cyclop
@@ -34,10 +33,11 @@ linters-settings:
     min-complexity: 20
     max-complexity: 30
   gci:
-    # put imports beginning with prefix after 3rd-party packages;
-    # only support one prefix
-    # if not set, use goimports.local-prefixes
-    local-prefixes: github.com/im-kulikov/helium
+    custom-order: true
+    sections:
+      - standard
+      - default
+      - prefix(github.com/im-kulikov/helium)
   dupl:
     threshold: 100
   goconst:

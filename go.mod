@@ -1,6 +1,6 @@
 module github.com/im-kulikov/helium
 
-go 1.17
+go 1.19
 
 require (
 	bou.ke/monkey v1.0.2
@@ -54,4 +54,5 @@ replace bou.ke/monkey v1.0.2 => github.com/bouk/monkey v1.0.2
 replace golang.org/x/text v0.3.7 => golang.org/x/text v0.4.0
 
 // fix CVE-2022-29153
+// reported by nancy
 replace github.com/hashicorp/consul/api v1.12.0 => github.com/hashicorp/consul/api v1.12.5

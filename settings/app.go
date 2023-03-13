@@ -39,7 +39,7 @@ func (a *Core) Provider() *module.Provider {
 // SafeType returns config type, default config type: yaml.
 // returns yml if config type not supported.
 // nolint:goconst
-func (a Core) SafeType() string {
+func (a *Core) SafeType() string {
 	switch a.Type {
 	case "toml", "yml", "yaml":
 		return a.Type
