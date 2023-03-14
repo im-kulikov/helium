@@ -2,10 +2,11 @@ package web
 
 import (
 	"bytes"
-	"io/ioutil"
+	"io"
 	"math"
 	"net"
 	"net/http"
+	"net/url"
 	"sync"
 	"testing"
 	"time"
@@ -412,10 +413,14 @@ func TestServers(t *testing.T) {
 						}
 
 						// nolint:noctx
-						resp, err := client.Get("http://" + lis.Addr().String() + "/test")
+						resp, err := client.Get((&url.URL{
+							Scheme: "http",
+							Path:   "/test",
+							Host:   lis.Addr().String(),
+						}).String())
 						require.NoError(t, err)
 
-						data, err := ioutil.ReadAll(resp.Body)
+						data, err := io.ReadAll(resp.Body)
 						require.NoError(t, err)
 
 						require.Equal(t, expectResult, data)
