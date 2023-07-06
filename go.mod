@@ -11,7 +11,7 @@ require (
 	go.uber.org/atomic v1.10.0
 	go.uber.org/dig v1.16.1
 	go.uber.org/zap v1.24.0
-	golang.org/x/net v0.8.0
+	golang.org/x/net v0.12.0
 	google.golang.org/grpc v1.52.0
 )
 
@@ -37,8 +37,8 @@ require (
 	github.com/spf13/pflag v1.0.5 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
-	golang.org/x/sys v0.6.0 // indirect
-	golang.org/x/text v0.8.0 // indirect
+	golang.org/x/sys v0.10.0 // indirect
+	golang.org/x/text v0.11.0 // indirect
 	google.golang.org/genproto v0.0.0-20221227171554-f9683d7f8bef // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
