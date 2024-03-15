@@ -12,6 +12,14 @@
 
 <img src="./.github/helium.jpg" width="350" alt="logo">
 
+# There's no changes for multiple months
+
+DEPRECATED
+
+Due to the high workload at my main job, I have almost no time left to maintain two projects: Helium and [GoBones](https://github.com/im-kulikov/go-bones)
+
+In this regard, after consulting with those who use Helium and who switched to GoBones, it was decided to curtail the development and support of Helium in favor of [GoBones](https://github.com/im-kulikov/go-bones)
+
 # Documentation
 
 * [Why Helium](#why-helium)
